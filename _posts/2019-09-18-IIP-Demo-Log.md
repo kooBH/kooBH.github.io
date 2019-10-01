@@ -6284,6 +6284,3491 @@ json 파일을 수정하게 해야하는데, 어떤 이벤트를 기준으로 �
 현재 WPE가 아닌 알고리즘은 생성자에 param을 받지 않고있다. 
 
 
+### 09.02 
+
+### TODO
++ 녹음 기능 추가 - CLI,Recorder,GUI
++ installer 손보기
++ 아이콘 달기
++ 리눅스 인스톨러
+
+Widget에서 integer 인지 아닌지 명시를 하자. 추가함. 
+
+LineEdit에서 변경시 double integer 유효성 확인 후 수정사항 적용시키자. 
+
+
+TextEdit 시 보다
+
+```
+void QLineEdit::textChanged(const QString &text)
+This signal is emitted whenever the text changes. The text argument is the new text.
+
+Unlike textEdited(), this signal is also emitted when the text is changed programmatically, for example, by calling setText().
+
+Note: Notifier signal for property text.
+```
+
+추가함. 
+
+---
+
+PLASMA 를 써보자.
+v19 를 써보려 했는데, omp 4.5 이상을 요구한다.  
+v17은 cmake가 없네. 
+v18 도 omp 4.5 이상을 요구하네, Window 에서 2.0 버전 그것도 불완전한 2.0 까지만 지원하는데.. 
+
+blas를 필수적으로 까는 거 이전에 여기서 문제가 있을 수 있다. 
+
+ICC를 쓰면 되는데,, ICC 쓰면 verdigris가 안되고.
+
+```
+make[2]: *** [CMakeFiles/iip_demo.dir/src/K/KSpectrogram.cpp.o] 오류 2
+/home/kbh/git/IIP_Demo/lib/verdigris/wobjectimpl.h(755): error: expression must have a constant value
+      constexpr static Arrays arrays = buildArrays();
+```
+
+```cpp
+  constexpr static auto buildArrays() {
+        auto r = Arrays{};
+        DataBuilder b{r};
+        generateDataPass<T>(b);
+        return r;
+    }
+```
+
+```constexpr``` 이 맞는데. 
+
+선택지
+1. 다른 egien 라이브러리 추가 조사
+2. verdigris fix
+3. eigen library 사용
+4. ???
+
+문제점
+1. OpenMp > 2.0   < - > MSVC  ==> ICC로 해결
+2. Verdigris(GUI) < - > ICC   ==> ???
+
+---
+
+openblas 써보자. 
+
+lapacke.h 를 써야한다. 저번에 어떻게 썼더라? lapacke.h 는 어디서 가져온 거고?
+
+```lapack-netlib/INCLUDE``` 안에 들어는 있는데 이게 맞는 건가? 일단 그거 가져와서 하는데 되는 거 같다. 
+
+문제는 lapack 에 함수 종류가 많네 
+
+```
+zheev
+zheev_2stage
+zheevd
+zheevd_2stage
+zheevr
+zheevr_2stage
+zheevx
+zheevx_2stage
+zhegv
+zhegv_2stage
+zhegvd
+zhegvx
+```
+
+다 고윳값을 구한다는 거 같은데, 조금씩 다르다. 
+
+
++  ZHEEV
+: computes all eigenvalues and, optionally, eigenvectors of a
+ complex Hermitian matrix A.
+
++  ZHEEV_2STAGE
+:  computes all eigenvalues and, optionally, eigenvectors of a
+ complex Hermitian matrix A using the 2stage technique for
+ the reduction to tridiagonal.
+
++ ZHEEVD 
+: computes all eigenvalues and, optionally, eigenvectors of a
+ complex Hermitian matrix A.  If eigenvectors are desired, it uses a
+ divide and conquer algorithm.
+ The divide and conquer algorithm makes very mild assumptions about
+ floating point arithmetic. It will work on machines with a guard
+ digit in add/subtract, or on those binary machines without guard
+ digits which subtract like the Cray X-MP, Cray Y-MP, Cray C-90, or
+ Cray-2. It could conceivably fail on hexadecimal or decimal machines
+ without guard digits, but we know of none.
+
++ ZHEEVR
+: computes selected eigenvalues and, optionally, eigenvectors
+ of a complex Hermitian matrix A.  Eigenvalues and eigenvectors can
+ be selected by specifying either a range of values or a range of
+ indices for the desired eigenvalues.
+
+ ZHEEVR first reduces the matrix A to tridiagonal form T with a call
+ to ZHETRD.  Then, whenever possible, ZHEEVR calls ZSTEMR to compute
+ eigenspectrum using Relatively Robust Representations.  ZSTEMR
+ computes eigenvalues by the dqds algorithm, while orthogonal
+ eigenvectors are computed from various "good" L D L^T representations
+ (also known as Relatively Robust Representations). Gram-Schmidt
+ orthogonalization is avoided as far as possible. More specifically,
+ the various steps of the algorithm are as follows.
+
+ For each unreduced block (submatrix) of T,
+    (a) Compute T - sigma I  = L D L^T, so that L and D
+        define all the wanted eigenvalues to high relative accuracy.
+        This means that small relative changes in the entries of D and L
+        cause only small relative changes in the eigenvalues and
+        eigenvectors. The standard (unfactored) representation of the
+        tridiagonal matrix T does not have this property in general.
+    (b) Compute the eigenvalues to suitable accuracy.
+        If the eigenvectors are desired, the algorithm attains full
+        accuracy of the computed eigenvalues only right before
+        the corresponding vectors have to be computed, see steps c) and d).
+    (c) For each cluster of close eigenvalues, select a new
+        shift close to the cluster, find a new factorization, and refine
+        the shifted eigenvalues to suitable accuracy.
+    (d) For each eigenvalue with a large enough relative separation compute
+        the corresponding eigenvector by forming a rank revealing twisted
+        factorization. Go back to (c) for any clusters that remain.
+
+ The desired accuracy of the output can be specified by the input
+ parameter ABSTOL.
+
+ For more details, see DSTEMR's documentation and:
+ - Inderjit S. Dhillon and Beresford N. Parlett: "Multiple representations
+   to compute orthogonal eigenvectors of symmetric tridiagonal matrices,"
+   Linear Algebra and its Applications, 387(1), pp. 1-28, August 2004.
+ - Inderjit Dhillon and Beresford Parlett: "Orthogonal Eigenvectors and
+   Relative Gaps," SIAM Journal on Matrix Analysis and Applications, Vol. 25,
+   2004.  Also LAPACK Working Note 154.
+ - Inderjit Dhillon: "A new O(n^2) algorithm for the symmetric
+   tridiagonal eigenvalue/eigenvector problem",
+   Computer Science Division Technical Report No. UCB/CSD-97-971,
+   UC Berkeley, May 1997.
+
+
+ Note 1 : ZHEEVR calls ZSTEMR when the full spectrum is requested
+ on machines which conform to the ieee-754 floating point standard.
+ ZHEEVR calls DSTEBZ and ZSTEIN on non-ieee machines and
+ when partial spectrum requests are made.
+
+ Normal execution of ZSTEMR may create NaNs and infinities and
+ hence may abort due to a floating point exception in environments
+ which do not handle NaNs and infinities in the ieee standard default
+ manner.
+
++  ZHEEVX
+ :  computes selected eigenvalues and, optionally, eigenvectors
+ of a complex Hermitian matrix A.  Eigenvalues and eigenvectors can
+ be selected by specifying either a range of values or a range of
+ indices for the desired eigenvalues.
+
++  ZHEGV
+:  computes all the eigenvalues, and optionally, the eigenvectors
+ of a complex generalized Hermitian-definite eigenproblem, of the form
+ A*x=(lambda)*B*x,  A*Bx=(lambda)*x,  or B*A*x=(lambda)*x.
+ Here A and B are assumed to be Hermitian and B is also
+ positive definite.
+
++  ZHEGVD 
+: computes all the eigenvalues, and optionally, the eigenvectors
+ of a complex generalized Hermitian-definite eigenproblem, of the form
+ A*x=(lambda)*B*x,  A*Bx=(lambda)*x,  or B*A*x=(lambda)*x.  Here A and
+ B are assumed to be Hermitian and B is also positive definite.
+ If eigenvectors are desired, it uses a divide and conquer algorithm.
+
+ The divide and conquer algorithm makes very mild assumptions about
+ floating point arithmetic. It will work on machines with a guard
+ digit in add/subtract, or on those binary machines without guard
+ digits which subtract like the Cray X-MP, Cray Y-MP, Cray C-90, or
+ Cray-2. It could conceivably fail on hexadecimal or decimal machines
+ without guard digits, but we know of none.
+
++  ZHEGVX 
+ : computes selected eigenvalues, and optionally, eigenvectors
+ of a complex generalized Hermitian-definite eigenproblem, of the form
+ A*x=(lambda)*B*x,  A*Bx=(lambda)*x,  or B*A*x=(lambda)*x.  Here A and
+ B are assumed to be Hermitian and B is also positive definite.
+ Eigenvalues and eigenvectors can be selected by specifying either a
+ range of values or a range of indices for the desired eigenvalues.
+
+일단 가장 기본 형태부터 써보자. 
+
+
+```fortran
+subroutine zheev	
+(
+character 	JOBZ,
+character 	UPLO,
+integer 	N,
+complex*16, dimension( lda, * ) 	A,
+integer 	LDA,
+double precision, dimension( * ) 	W,
+complex*16, dimension( * ) 	WORK,
+integer 	LWORK,
+double precision, dimension( * ) 	RWORK,
+integer 	INFO 
+)	
+```
+
+```cpp
+ LAPACK_zheev( &jobz, &uplo, &n, a, &lda, w, work, &lwork, rwork,
+                      &info );
+```
+
+```
+
+[in]	JOBZ	
+          JOBZ is CHARACTER*1
+          = 'N':  Compute eigenvalues only;
+          = 'V':  Compute eigenvalues and eigenvectors.
+
+
+[in]	UPLO	
+          UPLO is CHARACTER*1
+          = 'U':  Upper triangle of A is stored;
+          = 'L':  Lower triangle of A is stored.
+[in]	N	
+          N is INTEGER
+          The order of the matrix A.  N >= 0.
+[in,out]	A	
+          A is COMPLEX*16 array, dimension (LDA, N)
+          On entry, the Hermitian matrix A.  If UPLO = 'U', the
+          leading N-by-N upper triangular part of A contains the
+          upper triangular part of the matrix A.  If UPLO = 'L',
+          the leading N-by-N lower triangular part of A contains
+          the lower triangular part of the matrix A.
+          On exit, if JOBZ = 'V', then if INFO = 0, A contains the
+          orthonormal eigenvectors of the matrix A.
+          If JOBZ = 'N', then on exit the lower triangle (if UPLO='L')
+          or the upper triangle (if UPLO='U') of A, including the
+          diagonal, is destroyed.
+[in]	LDA	
+          LDA is INTEGER
+          The leading dimension of the array A.  LDA >= max(1,N).
+[out]	W	
+          W is DOUBLE PRECISION array, dimension (N)
+          If INFO = 0, the eigenvalues in ascending order.
+[out]	WORK	
+          WORK is COMPLEX*16 array, dimension (MAX(1,LWORK))
+          On exit, if INFO = 0, WORK(1) returns the optimal LWORK.
+[in]	LWORK	
+          LWORK is INTEGER
+          The length of the array WORK.  LWORK >= max(1,2*N-1).
+          For optimal efficiency, LWORK >= (NB+1)*N,
+          where NB is the blocksize for ZHETRD returned by ILAENV.
+
+          If LWORK = -1, then a workspace query is assumed; the routine
+          only calculates the optimal size of the WORK array, returns
+          this value as the first entry of the WORK array, and no error
+          message related to LWORK is issued by XERBLA.
+[out]	RWORK	
+          RWORK is DOUBLE PRECISION array, dimension (max(1, 3*N-2))
+[out]	INFO	
+          INFO is INTEGER
+          = 0:  successful exit
+          < 0:  if INFO = -i, the i-th argument had an illegal value
+          > 0:  if INFO = i, the algorithm failed to converge; i
+                off-diagonal elements of an intermediate tridiagonal
+                form did not converge to zero.
+
+```
+
+BLAS 에서는 복소수도 double 2개로 받더니, 여긴 또 ```__complex__ double```을 달라고한다. 
+
+일단 캐스팅해서 돌려보자. 돌아가기는 하고, 멀티 쓰레딩도 된다. 
+
+데이터 읽어서 연산은 시켰으나. 검증하는 부분을 구현해야겠다. 
+
+데이터 넣는 부분부터 틀렸다. 
+행렬이 두 알고리즘 모두 잘 안들어간다. 
+
+### 09.03
+
+N = 4 가지고 테스트 하자
+
+```matlab
+   A
+   1.2589 + 0.0000i   1.0763 - 0.5200i   0.1690 - 0.2269i   1.7411 - 0.6080i
+   1.0763 + 0.5200i  -1.6098 + 0.0000i   0.4868 - 0.1828i   0.0645 - 1.5256i
+   0.1690 + 0.2269i   0.4868 + 0.1828i  -1.3695 + 0.0000i   1.5417 + 0.6276i
+   1.7411 + 0.6080i   0.0645 + 1.5256i   1.5417 - 0.6276i  -1.4325 + 0.0000i
+
+   V
+   0.2812 + 0.0093i  -0.1539 + 0.0352i  -0.3312 + 0.4423i  -0.6516 + 0.4074i
+  -0.1814 - 0.4834i   0.6173 + 0.2624i  -0.2216 - 0.3752i  -0.2401 + 0.1899i
+   0.3595 + 0.2247i   0.5886 - 0.3612i   0.5137 + 0.0752i  -0.2598 - 0.0792i
+  -0.6889 + 0.0000i  -0.2196 + 0.0000i   0.4850 + 0.0000i  -0.4919 + 0.0000i
+
+   D
+   -4.1976         0         0         0
+         0   -1.5736         0         0
+         0         0   -0.2949         0
+         0         0         0    2.9132
+
+   sum(A*V  -  V*D,'all') = -1.8180e-15 + 4.7531e-16i
+
+```
+
+일단 eigen Library 의 A*V - V*D 가 0에 근사함.
+
+---
+
+OpenBLAS의 LAPACK을 해보자. BLAS 출력을 잘못하고 있었다. idx 초기화를 안했네. 
+
+OpenBLAS의 LAPACK이 잘 되는지 검증을 해보자. 
+
+cplx mat * cplx mat  - cplx mat * real vec  을 해야하는데  
+행렬 곱은 blas 쓰고 행렬x벡터는 for문 그냥 돌리자.  
+
+zheev 가 inplace 였다. 복사도 해야하네. 
+아니다 inplace 시키는게 hermitian 이라 대칭이므로 Upper 또는 Lower에서 넣어준다는 것. 그러면 대칭행렬 곱 연산 루틴이 있다면 그걸 쓰면 되지 않을까 싶은데 생각해보니까 대각성분이 바뀌니까. 안될거 같네.
+
+복사해서 해야겠다. 
+
+cblas하고 lapacke 하고 같이 include 하니까 충돌나는데, 
+
+OpenBLAS 빌드시에 LAPACKE 을 쓴다는 옵션을 줘야했던가 같은 실낱같은 기억이 스쳐지나갔다. ```iip_sph_pp``` 를 진행할 떄는 apt-get 으로 패키지 openblas를 사용했던것 같다 - lapack 포함 빌드인 - 
+
+상당히 꼬일 거 같은데.. linux에서 이걸 해결해서 빌드하고 링크한다 쳐도 윈도우에서는 더 복잡하게 가야하지 않을까? 아니다 cmake에 MSVC 옵션이 있기는 하니까? 근데 얘들 윈도우에서 잘 안되잖아. 
+
+조사를 더 해봐야겠다. 
+
+https://github.com/xianyi/OpenBLAS/wiki/How-to-use-OpenBLAS-in-Microsoft-Visual-Studio  
+
+된다는 거 같다. 
+
+그럼 OpenBLAS가 lapack을 같이 쓸 수 있게하는 옵션을 찾아보자.
+
+일단 OpenBLAS안의 lapack 폴더는 그냥 netlib 의 lapack을 냅다 들고온 거같다. 빌드도 안되네 이건 옵션을 제대로 안줘서 인거 같다.  
+
+아니면 편하게 apt-get으로 한거를 파일 가져와서 링크하며 되지 않을까?  
+
+https://github.com/gogyzzz/iip_sph_pp/issues/91  아.. 좀 더 자세히 읽었어야 했네. 여기서 한 대로 다시 해보자.  
+
+make install 해서 이동된 헤더들만 사용. 빌드는 성공하였다. 이제 다시 테스트로 돌아가자.  
+
+테스트 성공. 
+
+---
+
+Eigen 과 Lapack  모두 오차가 최대 e-14 이다 대체로 e-16 정도 되는 것 같다. 
+
+
+lapack 이 쓰레딩도 하고 최적화도 되어있어서 10배 빠르다. matlab 과는 6이상일 떄는 많이 격차가 나지만 그 이하에서는 거의 차이나지 않는다. 
+
+ZHEEV_2STAGE 이랑 ZHEEVD 만 해보면 될거 같다. 다른 것들은 같은 알고리즘에 좀 더 특정적인 인터페이스로 보임.  
+
+일단 ZHEEVD 먼저 해보자.  
+
+---
+
+openblas를 submodule 로해서 환경에 맞게 빌드하도록 해야겠다. 설치파일로 쓸거는 어쩔 수 없을 거 같긴한데. 
+
+OpenBLAS에 dynamic으로 하는게 있던게 그것도 한번 알아봐야겠다. 
+
+### 09.04
+
+#### TODO
++ ZHEEV_2STAGE
++ ZHEEVD
++ BLAZE
++ PLASMA - QUARK
++ lapack 래핑. 
+
+---
+
+zheev_2stage 는 OpenBLAS 에서 구현이 안되어있네,
+
+LAPACKE_zheevd 는 zheevd 랑 2stage 둘 다 구현이 되어있다. 
+
+zheevd 가 파라매터가 다르고 integer array work가 추가적으로 필요하다.  
+
+첵크해서 추가할까. 아니면 그냥 사이즈 받을 때 할당 해버릴까. 아니면 상속 구조로 갈까? 
+
+상속 구조로 가는게 나은거 같기도 하네. 
+
+zheev -> zheevd 상속.  
+
+---
+
+zheevd 랑 zheev 가 그렇게 차이가 없다. size 2, 4 일 때 빠른 알고리즘이 서로 바뀌긴하나. 유의미한 차이를 내지 못한다. 
+
+zheevd_2stage 가 ```symbol lookup error: undefined symbol : zheevd_2stage``` 가 뜬다. 구현이 안된걸까. 내가 링크를 잘 못한 걸까. 오타를 낸걸까.  
+
+https://github.com/xianyi/OpenBLAS/blob/ce3651516f12079f3ca2418aa85b9ad571c3a391/lapack-netlib/LAPACKE/src/lapacke_zheevd.c
+
+https://github.com/xianyi/OpenBLAS/blob/ce3651516f12079f3ca2418aa85b9ad571c3a391/lapack-netlib/LAPACKE/src/lapacke_zheevd_2stage.c
+
+보니까 내가 쓰고 있는 함수랑 인자가 다른데..? 뭔가 다른걸 링크해서 쓰고 있는 건가. 뭘 가져다 쓰고 있는 거지.  
+
+---
+
+역행렬 구하는 것 처럼. 고윳값 구하는 것도 코드짜여진거-낮은 채널- 있으면 찾아보자.
+
+일단 blaze 에는 안보이는 거 같다. 
+
+이건 좀 구하기 힘들거 같은데, 
+
+---
+
+### TODO
++ BLAZE
++ PLASMA - QUARK(구버전)
++ (openBLAS를 쓴다면)openblas set-up script 
++ 일반적인 역행렬 함수
+
+blaze 를 일단 써보자. 
+
+blaze is mere wrapping of blas/lapack.  옛날에도 blas에서 사용하려고 해서 알아보니까. 그냥 함수 래핑이었다. 결국엔 어떤 blas를 사용하는가의 문제이지 이게 뭘가를 해줄 거 같지는 않다. 
+
+그럼 일단 이정도 까지만 하자
+
+코드 짠거를 프로젝트에 합치자. 그리고 원래 프로젝트 작업 계속하자. 
+
+BLAS/LAPACK을 처리하는게 급선무겠다. 
+https://github.com/kooBH/IIP_Demo/issues/302  
+
+
+---
+### 09.05
+
+### TODO
++ BLAZE
++ PLASMA - QUARK(구버전)
++ (openBLAS를 쓴다면)openblas set-up script 
++ 일반적인 역행렬 함수
+
+
+역행렬 구하는 루틴을 만들자. 
+
+일단  blaze 에서 가져와서 변환할까 iip_sph_pp 에서 가져와서 변환할까 부터 정하자. 
+
+둘 다 별 차이는 없을 듯. 각자의 타입을 사용하도록 되어있는데. 나는 그냥 double 2개를 re,im 으로 해서 raw하게 할 것인기 떄문에 
+어차피 다 변환해야하는 건 같다. 커스텀한 타입을 사용하는 것은 그 타입을 계속 사용한다는 전제하에서는 굉장히 편리하지만, 그렇지 않을 경우 귀찮고 까다로워진다. 그냥 dobule 형으로 해도 직관적으로 받아들이기 쉽기 때문에 이렇게 간다. 
+
+일단 복소수만 하면 되니까 복소수 행렬만 변환하는 스크립트를 짜보자. 전에 짠게 남아있으면 좋을텐데 그럴거 같지는 않네.  
+
+두 코드가 다른 것은 blaze 는 복소수 타입의 연산을 오버로딩해서 구현해놨지만 sph 코드는 c 코드라서 복소수 구조체를 사용하되 연산 자체는  raw하게 되어있다. 
+
+### 09.06
+
+예전 스크립트가 남아있지는 않다. 
+
+음. 로컬 구조체로 연산을 시키고 들어오는 인자를 캐스팅하면 되지않을까? 테스트 해보자. 그러면 iip_sph_pp 의 코드를 그대로 쓸 수 있을 것 같다. 
+
+아 생각해보니까. 데이터가 일차원 배열에 있어야하네. blas 쓸려면.. 데이터 복사 작업을 한번 하든지 아니면 어차피 cpp 코드는 내가 짜야하니까 처음부터 일차원으로 해버리는 것도 괜찮을 것 같다. 성능 차이 한번 테스트는 해봐야겠지만. 
+
+일단은 캐스팅해서 해서 테스트 해보자. 
+
+```matlab
+A = [[0.840188 + 0.394383i,0.783099 + 0.798440i],
+    [0.911647 + 0.197551i,0.335223 + 0.768230i]];
+A
+inv(A)
+%(-0.795904 + -1.185639i)(1.555857 + 1.099865i)
+%(1.588316 + 0.053474i)(-1.528483 + -0.405178i)
+```
+
+잘된다. 코드는 iip_sph_pp 의 코드에 캐스팅만 넣어두었다. 
+
+추가하자. 
+
+lapack 에서 work 를 요구하는데 그냥 이거 클래스로 해버릴까? 근데 n을 명시해야하는데. 클래스 생성자에서 받고 루틴을 그냥 호출하는 식으로 일단 해야겠다. 
+
+아 기존의 6by6랑 충돌나네.
+
+refactoring 하고 몇가지 수정해서 넣음
+
+### 09.09
+
+### TODO
++ 파이선 standalone으로 사용할 수 있게하기
++ 런타임에서 쓰레드수를 정하게 하기. 
+==> 개발용이 아닌 임의의 pc에서 설치하고 그 pc에 맞게 실행이 가능한가? 의 문제.
+
+임의의 pc에서 gcp 테스트를 해야하는데. 
+
+1. 이 프로젝트를 들고가기
+2. 녹음 어플로 녹음 시켜서 별도의 파이썬 코드로 인식  
+
+[윈도콘솔창 없이 런](https://stackoverflow.com/questions/9618815/i-dont-want-console-to-appear-when-i-run-c-program )
+
+### 09.10
+
+#### 전날 발견한 문제
+
+---
+
+시리얼 포트 게인 설정시 응답없음 되는 상황
+포트 인식은 됨. 에러도 성공도 아닌 무응답 상태로 빠짐  
+
+---
+
+실행 파일로 release 시킨 상태에서 gcp를 어떻게 쓰게 할 것인가?  
+일단 최소한의 요구조건만 맞춘 파이썬을 포함시켜서 실행하였음. 다만 용량이 150mb 정도 되는데 어느 정도까지 줄일 수 있을 지 확인해봐야함.  
+
+---
+
+녹음시 현재는 버튼으로 조작하지만 시간을 설정해서 녹음하는 것도 추가해야할 것 같다.  
+
+---
+
+VAD & GCP 시 vad가 발화를 인식하지 않음.  
+데이터가 중간에 없어지는 지 vad 의 문제인지 파악해야함
+
+PreAlgo가 스코프 밖에 있었다. AfterInput 추가하면서 스코프에서 벗어난듯. 수정함.  
+
+그래도 vad 인식은 안된다. 코드가 들어가기는 하는데 어디서 문제난것일까.  
+
+스케일링이 문제인가? 
+차이가 없다. 들어오는 입력의 크기에 상관없에 psy가 nan이네.  
+
+vad 생성자를 한번봐야겠다. 생성자는 잘 들어오는데.. 
+
+왜 안되는거냐.. 입력은 잘 들어오는데. vad 알고리즘 코드를 건든 적도 없는데.  좀 더 테스트 해보자. 
+
+
+### 09.16
+
+wav input 시에 인식은 되는거 같은데 ui부분에서 터짐.
+
+stdio.h에서 오류 발생. windows 라서 발생한 것일 확률이 높다.  
+
++ GCP 부분에서 문제일으켰을 가능성이 크다. 
+
+----
+
+real time은
+
+raw,data 둘 다 들어오는 데는 문제가 없지만.  
+
+wav input에 비하면 전체적인 크기가 작다. 
+
+wav input 이면 psy가 제대로 들어오는데, real time 이면 nan이 뜨고. 그냥 전체 값을 찍어서 봐야겠다. 
+
+아 스피커 설정 
+### 09.02 
+
+### TODO
++ 녹음 기능 추가 - CLI,Recorder,GUI
++ installer 손보기
++ 아이콘 달기
++ 리눅스 인스톨러
+
+Widget에서 integer 인지 아닌지 명시를 하자. 추가함. 
+
+LineEdit에서 변경시 double integer 유효성 확인 후 수정사항 적용시키자. 
+
+
+TextEdit 시 보다
+
+```
+void QLineEdit::textChanged(const QString &text)
+This signal is emitted whenever the text changes. The text argument is the new text.
+
+Unlike textEdited(), this signal is also emitted when the text is changed programmatically, for example, by calling setText().
+
+Note: Notifier signal for property text.
+```
+
+추가함. 
+
+---
+
+PLASMA 를 써보자.
+v19 를 써보려 했는데, omp 4.5 이상을 요구한다.  
+v17은 cmake가 없네. 
+v18 도 omp 4.5 이상을 요구하네, Window 에서 2.0 버전 그것도 불완전한 2.0 까지만 지원하는데.. 
+
+blas를 필수적으로 까는 거 이전에 여기서 문제가 있을 수 있다. 
+
+ICC를 쓰면 되는데,, ICC 쓰면 verdigris가 안되고.
+
+```
+make[2]: *** [CMakeFiles/iip_demo.dir/src/K/KSpectrogram.cpp.o] 오류 2
+/home/kbh/git/IIP_Demo/lib/verdigris/wobjectimpl.h(755): error: expression must have a constant value
+      constexpr static Arrays arrays = buildArrays();
+```
+
+```cpp
+  constexpr static auto buildArrays() {
+        auto r = Arrays{};
+        DataBuilder b{r};
+        generateDataPass<T>(b);
+        return r;
+    }
+```
+
+```constexpr``` 이 맞는데. 
+
+선택지
+1. 다른 egien 라이브러리 추가 조사
+2. verdigris fix
+3. eigen library 사용
+4. ???
+
+문제점
+1. OpenMp > 2.0   < - > MSVC  ==> ICC로 해결
+2. Verdigris(GUI) < - > ICC   ==> ???
+
+---
+
+openblas 써보자. 
+
+lapacke.h 를 써야한다. 저번에 어떻게 썼더라? lapacke.h 는 어디서 가져온 거고?
+
+```lapack-netlib/INCLUDE``` 안에 들어는 있는데 이게 맞는 건가? 일단 그거 가져와서 하는데 되는 거 같다. 
+
+문제는 lapack 에 함수 종류가 많네 
+
+```
+zheev
+zheev_2stage
+zheevd
+zheevd_2stage
+zheevr
+zheevr_2stage
+zheevx
+zheevx_2stage
+zhegv
+zhegv_2stage
+zhegvd
+zhegvx
+```
+
+다 고윳값을 구한다는 거 같은데, 조금씩 다르다. 
+
+
++  ZHEEV
+: computes all eigenvalues and, optionally, eigenvectors of a
+ complex Hermitian matrix A.
+
++  ZHEEV_2STAGE
+:  computes all eigenvalues and, optionally, eigenvectors of a
+ complex Hermitian matrix A using the 2stage technique for
+ the reduction to tridiagonal.
+
++ ZHEEVD 
+: computes all eigenvalues and, optionally, eigenvectors of a
+ complex Hermitian matrix A.  If eigenvectors are desired, it uses a
+ divide and conquer algorithm.
+ The divide and conquer algorithm makes very mild assumptions about
+ floating point arithmetic. It will work on machines with a guard
+ digit in add/subtract, or on those binary machines without guard
+ digits which subtract like the Cray X-MP, Cray Y-MP, Cray C-90, or
+ Cray-2. It could conceivably fail on hexadecimal or decimal machines
+ without guard digits, but we know of none.
+
++ ZHEEVR
+: computes selected eigenvalues and, optionally, eigenvectors
+ of a complex Hermitian matrix A.  Eigenvalues and eigenvectors can
+ be selected by specifying either a range of values or a range of
+ indices for the desired eigenvalues.
+
+ ZHEEVR first reduces the matrix A to tridiagonal form T with a call
+ to ZHETRD.  Then, whenever possible, ZHEEVR calls ZSTEMR to compute
+ eigenspectrum using Relatively Robust Representations.  ZSTEMR
+ computes eigenvalues by the dqds algorithm, while orthogonal
+ eigenvectors are computed from various "good" L D L^T representations
+ (also known as Relatively Robust Representations). Gram-Schmidt
+ orthogonalization is avoided as far as possible. More specifically,
+ the various steps of the algorithm are as follows.
+
+ For each unreduced block (submatrix) of T,
+    (a) Compute T - sigma I  = L D L^T, so that L and D
+        define all the wanted eigenvalues to high relative accuracy.
+        This means that small relative changes in the entries of D and L
+        cause only small relative changes in the eigenvalues and
+        eigenvectors. The standard (unfactored) representation of the
+        tridiagonal matrix T does not have this property in general.
+    (b) Compute the eigenvalues to suitable accuracy.
+        If the eigenvectors are desired, the algorithm attains full
+        accuracy of the computed eigenvalues only right before
+        the corresponding vectors have to be computed, see steps c) and d).
+    (c) For each cluster of close eigenvalues, select a new
+        shift close to the cluster, find a new factorization, and refine
+        the shifted eigenvalues to suitable accuracy.
+    (d) For each eigenvalue with a large enough relative separation compute
+        the corresponding eigenvector by forming a rank revealing twisted
+        factorization. Go back to (c) for any clusters that remain.
+
+ The desired accuracy of the output can be specified by the input
+ parameter ABSTOL.
+
+ For more details, see DSTEMR's documentation and:
+ - Inderjit S. Dhillon and Beresford N. Parlett: "Multiple representations
+   to compute orthogonal eigenvectors of symmetric tridiagonal matrices,"
+   Linear Algebra and its Applications, 387(1), pp. 1-28, August 2004.
+ - Inderjit Dhillon and Beresford Parlett: "Orthogonal Eigenvectors and
+   Relative Gaps," SIAM Journal on Matrix Analysis and Applications, Vol. 25,
+   2004.  Also LAPACK Working Note 154.
+ - Inderjit Dhillon: "A new O(n^2) algorithm for the symmetric
+   tridiagonal eigenvalue/eigenvector problem",
+   Computer Science Division Technical Report No. UCB/CSD-97-971,
+   UC Berkeley, May 1997.
+
+
+ Note 1 : ZHEEVR calls ZSTEMR when the full spectrum is requested
+ on machines which conform to the ieee-754 floating point standard.
+ ZHEEVR calls DSTEBZ and ZSTEIN on non-ieee machines and
+ when partial spectrum requests are made.
+
+ Normal execution of ZSTEMR may create NaNs and infinities and
+ hence may abort due to a floating point exception in environments
+ which do not handle NaNs and infinities in the ieee standard default
+ manner.
+
++  ZHEEVX
+ :  computes selected eigenvalues and, optionally, eigenvectors
+ of a complex Hermitian matrix A.  Eigenvalues and eigenvectors can
+ be selected by specifying either a range of values or a range of
+ indices for the desired eigenvalues.
+
++  ZHEGV
+:  computes all the eigenvalues, and optionally, the eigenvectors
+ of a complex generalized Hermitian-definite eigenproblem, of the form
+ A*x=(lambda)*B*x,  A*Bx=(lambda)*x,  or B*A*x=(lambda)*x.
+ Here A and B are assumed to be Hermitian and B is also
+ positive definite.
+
++  ZHEGVD 
+: computes all the eigenvalues, and optionally, the eigenvectors
+ of a complex generalized Hermitian-definite eigenproblem, of the form
+ A*x=(lambda)*B*x,  A*Bx=(lambda)*x,  or B*A*x=(lambda)*x.  Here A and
+ B are assumed to be Hermitian and B is also positive definite.
+ If eigenvectors are desired, it uses a divide and conquer algorithm.
+
+ The divide and conquer algorithm makes very mild assumptions about
+ floating point arithmetic. It will work on machines with a guard
+ digit in add/subtract, or on those binary machines without guard
+ digits which subtract like the Cray X-MP, Cray Y-MP, Cray C-90, or
+ Cray-2. It could conceivably fail on hexadecimal or decimal machines
+ without guard digits, but we know of none.
+
++  ZHEGVX 
+ : computes selected eigenvalues, and optionally, eigenvectors
+ of a complex generalized Hermitian-definite eigenproblem, of the form
+ A*x=(lambda)*B*x,  A*Bx=(lambda)*x,  or B*A*x=(lambda)*x.  Here A and
+ B are assumed to be Hermitian and B is also positive definite.
+ Eigenvalues and eigenvectors can be selected by specifying either a
+ range of values or a range of indices for the desired eigenvalues.
+
+일단 가장 기본 형태부터 써보자. 
+
+
+```fortran
+subroutine zheev	
+(
+character 	JOBZ,
+character 	UPLO,
+integer 	N,
+complex*16, dimension( lda, * ) 	A,
+integer 	LDA,
+double precision, dimension( * ) 	W,
+complex*16, dimension( * ) 	WORK,
+integer 	LWORK,
+double precision, dimension( * ) 	RWORK,
+integer 	INFO 
+)	
+```
+
+```cpp
+ LAPACK_zheev( &jobz, &uplo, &n, a, &lda, w, work, &lwork, rwork,
+                      &info );
+```
+
+```
+
+[in]	JOBZ	
+          JOBZ is CHARACTER*1
+          = 'N':  Compute eigenvalues only;
+          = 'V':  Compute eigenvalues and eigenvectors.
+
+
+[in]	UPLO	
+          UPLO is CHARACTER*1
+          = 'U':  Upper triangle of A is stored;
+          = 'L':  Lower triangle of A is stored.
+[in]	N	
+          N is INTEGER
+          The order of the matrix A.  N >= 0.
+[in,out]	A	
+          A is COMPLEX*16 array, dimension (LDA, N)
+          On entry, the Hermitian matrix A.  If UPLO = 'U', the
+          leading N-by-N upper triangular part of A contains the
+          upper triangular part of the matrix A.  If UPLO = 'L',
+          the leading N-by-N lower triangular part of A contains
+          the lower triangular part of the matrix A.
+          On exit, if JOBZ = 'V', then if INFO = 0, A contains the
+          orthonormal eigenvectors of the matrix A.
+          If JOBZ = 'N', then on exit the lower triangle (if UPLO='L')
+          or the upper triangle (if UPLO='U') of A, including the
+          diagonal, is destroyed.
+[in]	LDA	
+          LDA is INTEGER
+          The leading dimension of the array A.  LDA >= max(1,N).
+[out]	W	
+          W is DOUBLE PRECISION array, dimension (N)
+          If INFO = 0, the eigenvalues in ascending order.
+[out]	WORK	
+          WORK is COMPLEX*16 array, dimension (MAX(1,LWORK))
+          On exit, if INFO = 0, WORK(1) returns the optimal LWORK.
+[in]	LWORK	
+          LWORK is INTEGER
+          The length of the array WORK.  LWORK >= max(1,2*N-1).
+          For optimal efficiency, LWORK >= (NB+1)*N,
+          where NB is the blocksize for ZHETRD returned by ILAENV.
+
+          If LWORK = -1, then a workspace query is assumed; the routine
+          only calculates the optimal size of the WORK array, returns
+          this value as the first entry of the WORK array, and no error
+          message related to LWORK is issued by XERBLA.
+[out]	RWORK	
+          RWORK is DOUBLE PRECISION array, dimension (max(1, 3*N-2))
+[out]	INFO	
+          INFO is INTEGER
+          = 0:  successful exit
+          < 0:  if INFO = -i, the i-th argument had an illegal value
+          > 0:  if INFO = i, the algorithm failed to converge; i
+                off-diagonal elements of an intermediate tridiagonal
+                form did not converge to zero.
+
+```
+
+BLAS 에서는 복소수도 double 2개로 받더니, 여긴 또 ```__complex__ double```을 달라고한다. 
+
+일단 캐스팅해서 돌려보자. 돌아가기는 하고, 멀티 쓰레딩도 된다. 
+
+데이터 읽어서 연산은 시켰으나. 검증하는 부분을 구현해야겠다. 
+
+데이터 넣는 부분부터 틀렸다. 
+행렬이 두 알고리즘 모두 잘 안들어간다. 
+
+### 09.03
+
+N = 4 가지고 테스트 하자
+
+```matlab
+   A
+   1.2589 + 0.0000i   1.0763 - 0.5200i   0.1690 - 0.2269i   1.7411 - 0.6080i
+   1.0763 + 0.5200i  -1.6098 + 0.0000i   0.4868 - 0.1828i   0.0645 - 1.5256i
+   0.1690 + 0.2269i   0.4868 + 0.1828i  -1.3695 + 0.0000i   1.5417 + 0.6276i
+   1.7411 + 0.6080i   0.0645 + 1.5256i   1.5417 - 0.6276i  -1.4325 + 0.0000i
+
+   V
+   0.2812 + 0.0093i  -0.1539 + 0.0352i  -0.3312 + 0.4423i  -0.6516 + 0.4074i
+  -0.1814 - 0.4834i   0.6173 + 0.2624i  -0.2216 - 0.3752i  -0.2401 + 0.1899i
+   0.3595 + 0.2247i   0.5886 - 0.3612i   0.5137 + 0.0752i  -0.2598 - 0.0792i
+  -0.6889 + 0.0000i  -0.2196 + 0.0000i   0.4850 + 0.0000i  -0.4919 + 0.0000i
+
+   D
+   -4.1976         0         0         0
+         0   -1.5736         0         0
+         0         0   -0.2949         0
+         0         0         0    2.9132
+
+   sum(A*V  -  V*D,'all') = -1.8180e-15 + 4.7531e-16i
+
+```
+
+일단 eigen Library 의 A*V - V*D 가 0에 근사함.
+
+---
+
+OpenBLAS의 LAPACK을 해보자. BLAS 출력을 잘못하고 있었다. idx 초기화를 안했네. 
+
+OpenBLAS의 LAPACK이 잘 되는지 검증을 해보자. 
+
+cplx mat * cplx mat  - cplx mat * real vec  을 해야하는데  
+행렬 곱은 blas 쓰고 행렬x벡터는 for문 그냥 돌리자.  
+
+zheev 가 inplace 였다. 복사도 해야하네. 
+아니다 inplace 시키는게 hermitian 이라 대칭이므로 Upper 또는 Lower에서 넣어준다는 것. 그러면 대칭행렬 곱 연산 루틴이 있다면 그걸 쓰면 되지 않을까 싶은데 생각해보니까 대각성분이 바뀌니까. 안될거 같네.
+
+복사해서 해야겠다. 
+
+cblas하고 lapacke 하고 같이 include 하니까 충돌나는데, 
+
+OpenBLAS 빌드시에 LAPACKE 을 쓴다는 옵션을 줘야했던가 같은 실낱같은 기억이 스쳐지나갔다. ```iip_sph_pp``` 를 진행할 떄는 apt-get 으로 패키지 openblas를 사용했던것 같다 - lapack 포함 빌드인 - 
+
+상당히 꼬일 거 같은데.. linux에서 이걸 해결해서 빌드하고 링크한다 쳐도 윈도우에서는 더 복잡하게 가야하지 않을까? 아니다 cmake에 MSVC 옵션이 있기는 하니까? 근데 얘들 윈도우에서 잘 안되잖아. 
+
+조사를 더 해봐야겠다. 
+
+https://github.com/xianyi/OpenBLAS/wiki/How-to-use-OpenBLAS-in-Microsoft-Visual-Studio  
+
+된다는 거 같다. 
+
+그럼 OpenBLAS가 lapack을 같이 쓸 수 있게하는 옵션을 찾아보자.
+
+일단 OpenBLAS안의 lapack 폴더는 그냥 netlib 의 lapack을 냅다 들고온 거같다. 빌드도 안되네 이건 옵션을 제대로 안줘서 인거 같다.  
+
+아니면 편하게 apt-get으로 한거를 파일 가져와서 링크하며 되지 않을까?  
+
+https://github.com/gogyzzz/iip_sph_pp/issues/91  아.. 좀 더 자세히 읽었어야 했네. 여기서 한 대로 다시 해보자.  
+
+make install 해서 이동된 헤더들만 사용. 빌드는 성공하였다. 이제 다시 테스트로 돌아가자.  
+
+테스트 성공. 
+
+---
+
+Eigen 과 Lapack  모두 오차가 최대 e-14 이다 대체로 e-16 정도 되는 것 같다. 
+
+
+lapack 이 쓰레딩도 하고 최적화도 되어있어서 10배 빠르다. matlab 과는 6이상일 떄는 많이 격차가 나지만 그 이하에서는 거의 차이나지 않는다. 
+
+ZHEEV_2STAGE 이랑 ZHEEVD 만 해보면 될거 같다. 다른 것들은 같은 알고리즘에 좀 더 특정적인 인터페이스로 보임.  
+
+일단 ZHEEVD 먼저 해보자.  
+
+---
+
+openblas를 submodule 로해서 환경에 맞게 빌드하도록 해야겠다. 설치파일로 쓸거는 어쩔 수 없을 거 같긴한데. 
+
+OpenBLAS에 dynamic으로 하는게 있던게 그것도 한번 알아봐야겠다. 
+
+### 09.04
+
+#### TODO
++ ZHEEV_2STAGE
++ ZHEEVD
++ BLAZE
++ PLASMA - QUARK
++ lapack 래핑. 
+
+---
+
+zheev_2stage 는 OpenBLAS 에서 구현이 안되어있네,
+
+LAPACKE_zheevd 는 zheevd 랑 2stage 둘 다 구현이 되어있다. 
+
+zheevd 가 파라매터가 다르고 integer array work가 추가적으로 필요하다.  
+
+첵크해서 추가할까. 아니면 그냥 사이즈 받을 때 할당 해버릴까. 아니면 상속 구조로 갈까? 
+
+상속 구조로 가는게 나은거 같기도 하네. 
+
+zheev -> zheevd 상속.  
+
+---
+
+zheevd 랑 zheev 가 그렇게 차이가 없다. size 2, 4 일 때 빠른 알고리즘이 서로 바뀌긴하나. 유의미한 차이를 내지 못한다. 
+
+zheevd_2stage 가 ```symbol lookup error: undefined symbol : zheevd_2stage``` 가 뜬다. 구현이 안된걸까. 내가 링크를 잘 못한 걸까. 오타를 낸걸까.  
+
+https://github.com/xianyi/OpenBLAS/blob/ce3651516f12079f3ca2418aa85b9ad571c3a391/lapack-netlib/LAPACKE/src/lapacke_zheevd.c
+
+https://github.com/xianyi/OpenBLAS/blob/ce3651516f12079f3ca2418aa85b9ad571c3a391/lapack-netlib/LAPACKE/src/lapacke_zheevd_2stage.c
+
+보니까 내가 쓰고 있는 함수랑 인자가 다른데..? 뭔가 다른걸 링크해서 쓰고 있는 건가. 뭘 가져다 쓰고 있는 거지.  
+
+---
+
+역행렬 구하는 것 처럼. 고윳값 구하는 것도 코드짜여진거-낮은 채널- 있으면 찾아보자.
+
+일단 blaze 에는 안보이는 거 같다. 
+
+이건 좀 구하기 힘들거 같은데, 
+
+---
+
+### TODO
++ BLAZE
++ PLASMA - QUARK(구버전)
++ (openBLAS를 쓴다면)openblas set-up script 
++ 일반적인 역행렬 함수
+
+blaze 를 일단 써보자. 
+
+blaze is mere wrapping of blas/lapack.  옛날에도 blas에서 사용하려고 해서 알아보니까. 그냥 함수 래핑이었다. 결국엔 어떤 blas를 사용하는가의 문제이지 이게 뭘가를 해줄 거 같지는 않다. 
+
+그럼 일단 이정도 까지만 하자
+
+코드 짠거를 프로젝트에 합치자. 그리고 원래 프로젝트 작업 계속하자. 
+
+BLAS/LAPACK을 처리하는게 급선무겠다. 
+https://github.com/kooBH/IIP_Demo/issues/302  
+
+
+---
+### 09.05
+
+### TODO
++ BLAZE
++ PLASMA - QUARK(구버전)
++ (openBLAS를 쓴다면)openblas set-up script 
++ 일반적인 역행렬 함수
+
+
+역행렬 구하는 루틴을 만들자. 
+
+일단  blaze 에서 가져와서 변환할까 iip_sph_pp 에서 가져와서 변환할까 부터 정하자. 
+
+둘 다 별 차이는 없을 듯. 각자의 타입을 사용하도록 되어있는데. 나는 그냥 double 2개를 re,im 으로 해서 raw하게 할 것인기 떄문에 
+어차피 다 변환해야하는 건 같다. 커스텀한 타입을 사용하는 것은 그 타입을 계속 사용한다는 전제하에서는 굉장히 편리하지만, 그렇지 않을 경우 귀찮고 까다로워진다. 그냥 dobule 형으로 해도 직관적으로 받아들이기 쉽기 때문에 이렇게 간다. 
+
+일단 복소수만 하면 되니까 복소수 행렬만 변환하는 스크립트를 짜보자. 전에 짠게 남아있으면 좋을텐데 그럴거 같지는 않네.  
+
+두 코드가 다른 것은 blaze 는 복소수 타입의 연산을 오버로딩해서 구현해놨지만 sph 코드는 c 코드라서 복소수 구조체를 사용하되 연산 자체는  raw하게 되어있다. 
+
+### 09.06
+
+예전 스크립트가 남아있지는 않다. 
+
+음. 로컬 구조체로 연산을 시키고 들어오는 인자를 캐스팅하면 되지않을까? 테스트 해보자. 그러면 iip_sph_pp 의 코드를 그대로 쓸 수 있을 것 같다. 
+
+아 생각해보니까. 데이터가 일차원 배열에 있어야하네. blas 쓸려면.. 데이터 복사 작업을 한번 하든지 아니면 어차피 cpp 코드는 내가 짜야하니까 처음부터 일차원으로 해버리는 것도 괜찮을 것 같다. 성능 차이 한번 테스트는 해봐야겠지만. 
+
+일단은 캐스팅해서 해서 테스트 해보자. 
+
+```matlab
+A = [[0.840188 + 0.394383i,0.783099 + 0.798440i],
+    [0.911647 + 0.197551i,0.335223 + 0.768230i]];
+A
+inv(A)
+%(-0.795904 + -1.185639i)(1.555857 + 1.099865i)
+%(1.588316 + 0.053474i)(-1.528483 + -0.405178i)
+```
+
+잘된다. 코드는 iip_sph_pp 의 코드에 캐스팅만 넣어두었다. 
+
+추가하자. 
+
+lapack 에서 work 를 요구하는데 그냥 이거 클래스로 해버릴까? 근데 n을 명시해야하는데. 클래스 생성자에서 받고 루틴을 그냥 호출하는 식으로 일단 해야겠다. 
+
+아 기존의 6by6랑 충돌나네.
+
+refactoring 하고 몇가지 수정해서 넣음
+
+### 09.09
+
+### TODO
++ 파이선 standalone으로 사용할 수 있게하기
++ 런타임에서 쓰레드수를 정하게 하기. 
+==> 개발용이 아닌 임의의 pc에서 설치하고 그 pc에 맞게 실행이 가능한가? 의 문제.
+
+임의의 pc에서 gcp 테스트를 해야하는데. 
+
+1. 이 프로젝트를 들고가기
+2. 녹음 어플로 녹음 시켜서 별도의 파이썬 코드로 인식  
+
+[윈도콘솔창 없이 런](https://stackoverflow.com/questions/9618815/i-dont-want-console-to-appear-when-i-run-c-program )
+
+### 09.10
+
+#### 전날 발견한 문제
+
+---
+
+시리얼 포트 게인 설정시 응답없음 되는 상황
+포트 인식은 됨. 에러도 성공도 아닌 무응답 상태로 빠짐  
+
+---
+
+실행 파일로 release 시킨 상태에서 gcp를 어떻게 쓰게 할 것인가?  
+일단 최소한의 요구조건만 맞춘 파이썬을 포함시켜서 실행하였음. 다만 용량이 150mb 정도 되는데 어느 정도까지 줄일 수 있을 지 확인해봐야함.  
+
+---
+
+녹음시 현재는 버튼으로 조작하지만 시간을 설정해서 녹음하는 것도 추가해야할 것 같다.  
+
+---
+
+VAD & GCP 시 vad가 발화를 인식하지 않음.  
+데이터가 중간에 없어지는 지 vad 의 문제인지 파악해야함
+
+PreAlgo가 스코프 밖에 있었다. AfterInput 추가하면서 스코프에서 벗어난듯. 수정함.  
+
+그래도 vad 인식은 안된다. 코드가 들어가기는 하는데 어디서 문제난것일까.  
+
+스케일링이 문제인가? 
+차이가 없다. 들어오는 입력의 크기에 상관없에 psy가 nan이네.  
+
+vad 생성자를 한번봐야겠다. 생성자는 잘 들어오는데.. 
+
+왜 안되는거냐.. 입력은 잘 들어오는데. vad 알고리즘 코드를 건든 적도 없는데.  좀 더 테스트 해보자. 
+
+
+### 09.16
+
+wav input 시에 인식은 되는거 같은데 ui부분에서 터짐.
+
+stdio.h에서 오류 발생. windows 라서 발생한 것일 확률이 높다.  
+
++ GCP 부분에서 문제일으켰을 가능성이 크다. 
+
+----
+
+real time은
+
+raw,data 둘 다 들어오는 데는 문제가 없지만.  
+
+wav input에 비하면 전체적인 크기가 작다. 
+
+wav input 이면 psy가 제대로 들어오는데, real time 이면 nan이 뜨고. 그냥 전체 값을 찍어서 봐야겠다. 
+
+아 스피커 설정 문제였네.  
+
+노트북 48k, 마이크 16k 이건 간과하다니. 삽질이었다. 
+
+덕분에 이것저것 문제점을 찾기는 했다.
+
+### 09.17
+
+잘못된 오디오를 선택해서 construct 한 후에, 다시 제대로된 오디오를 연결하고 reconstruct 시 ``` QObject::disconnect: signal not found in KProcess``` 발생
+
+이거는 
+
+connect 를 체크하는 루틴을 찾아보자. 
+
+QDebug를 쓰라하네. 이 문제는 Module이 할당이 제대로 안된 상태에서 connect를 하면 connect가 안되는데 disconnect를 하려해서 발생하는 에러이다. 
+
+RT input에서 장치 선택시 문제가 있으면 에러를 출력하는데. 이를 bool 로 받아서 이 값을 체크해서 유효한 인스턴스인지 아닌지를 식별해보자. 
+이걸 new operator 단에서 어떻게 nullptr을 리턴하게 할 수 있을까?
+
+테스트 해보자.
+
+는 안됨. try - catch 로 필요한 부분만 처리를 해주자 일단. 
+
+지금 RT_INPUT을 생성하다가 문제가 생기면 throw를 하는데. 그러면 module 은 어떻게 되는 거지? 
+
+그 전까지 할당된 메모리들은 어떻게 되는 거지?
+
+일단은 현 시점에서 할당하다가 만 상태로 해제하면 seg 발생. 
+
+다 예외처리 박아버리면 될 거 같기는 한데. 너무 노가다 아닌가. 
+
+다 예외처리 함. 동작잘함.  
+
+---
+
+Process의 UI가 너무 작다. 크기를 늘리고 재배치해보자.  
+
+아니다 그렇게 까지 크게할 필요는 없을거 같은데.  
+
+그렇게 까지 중요한 문제는 아니니까 보류. 
+
+wav plot의 width가 부모 위젯에 의존적이지가 않네. 상대적으로 바뀌게 해야겠다.
+
+---
+
+옵션은 benchmark랑 recorder,dev 만 두고 나머지는 없애자. 
+
+배포판에 포함하는 거는 윈도만 하자. 
+
+GCP 전처리 분기를 해제 하면서 많은 문제가 발생할 거 같은데. 이건 해야하는 일이니까. 
+
+조심스럽게 진행하자. 일단 현재 빌드는 가능. 
+
+아. GCP 옵션이 켜져있을 때만 GCP를 사용하도록 해야겠다. 
+
+RealTimeRecord에 _GCP 구문이 있다?
+
+---
+
+CMakeLists.txt 에서 버전 명시할 수 있게 하자. 
+함. 하지만 옮기기만 하고 좀 더 편리하게 할 방법을 찾아보자. 
+
+
+
+
+### 09.18  
+
+아직까지 연구실 네트워크 연결이 안되어있는 관계로 노트북에서 작업 지속.  
+
+pc 리포랑 머지할 때 굉장히 많은 conflict가 날거 같다. 이 상황이 지속될 수 록 많이 나겠지. 
+
+일단 윈도에서의 문제를 해결 하자. 조심스럽게 진행해야한다. 테스크탑에서 수정사항이 좀 광범위하게 있기 때문에.. 
+
+---
+
+일단 stdio.h 에서 발생하는 에러부터 해결해보자. 
+
+```GCP_Module.cpp```
+
+```c++
+void GCP::Call(const char* file_name){
+#ifndef NDEBUG
+  printf("GCP::call %d %s\n",2,file_name);
+#endif
+  sprintf(command,"%s",file_name);  // <---- stdio.h 에러 발생 지점
+}
+```
+
+command ```char[80]``` 에서 문제가 발생   
+
+그리고 
+
+```
+예외 발생(0x00007FFAC5E41689(vcruntime140.dll), iip_demo.exe): 0xC0000005: 0xFFFFFFFFFFFFFFFF 
+위치를 읽는 동안 액세스 위반이 발생했습니다..
+```
+가
+```c++
+printf("LOG::%s\n",file_name);
+```
+했을 때 발생.
+
+file_name 이랑 command 둘 다 클래스의 멤버 변수로 정적 할당되어있는 char 이다. 
+
+어디서 에러가 나는 거지. 
+
+this 가 null 이었다. 이 문제는 데스크탑에서 수정 된 사항인데.. 
+
+코드를 수정하는 거는 좀 지양해야겠다. 
+
+---
+
+최소한의 크기를 차지하고 gcp를 동작시키는 파이썬 배포판을 만들어보자. 안쓰는 패키지들 다 삭제하면 되지 않을까? 
+
+cmake는 데스크탑에서 수정한게 있는데 윈도도 수정되어서 음.. 일단 해봐야겠네. 
+
+---
+
+윈도우 콘솔에 왜 또 한글이 안나오나. 
+
+```인식중``` 이 ```?�식 ��?.``` 으로 나온다. 콘솔도, UI도. 아마 코드상에서 안받는 건가. 
+
+```
+DirectWrite: CreateFontFaceFromHDC() failed (글꼴 파일과 같은 입력 파일의 오류를 나타냅니다.) for QFontDef(Family="Fixedsys",
+ pointsize=24, pixelsize=20, styleHint=5, weight=50, stretch=100, hintingPreference=0) LOGFONT("Fixedsys", lfWidth=0, 
+lfHeight=-20) dpi=120
+```
+
+폰트 문제인가 UI에서는 ? 원래 잘 되지 않았나? 
+
+일단 콘솔부터 한글을 출력해보자. 
+
+VS2019는 멀티바이트로 되어있었네. 
+
+아 vs 가 멀티바이트 인코딩이었는 데 이걸 다 유니코드로 바꾸면서 한글 다 깨짐. 이래서 영어로 주석을 달아야..
+
+굉장히 조진거 같다. 원래 유니코드 한글을 잘 표시되는데 멀티바이트 한글은 다 깨짐. 변환이 잘 안되네. 
+
+현재 콘솔 출력창은 한글이 잘 나오는데. 위젯에서 하나도 안된다.
+
+이제 
+
+```
+DirectWrite: CreateFontFaceFromHDC() failed (글꼴 파일과 같은 입력 파일의 오류를 나타냅니다.) for QFontDef(Family="Fixedsys", 
+pointsize=24, pixelsize=20, styleHint=5, weight=50, stretch=100, hintingPreference=0) LOGFONT("Fixedsys", lfWidth=0, 
+lfHeight=-20) dpi=120
+```
+
+이 문제를 해결해야하는가. 
+
+일단 머지는 해야겠다. 
+
+했던거 다 날리고 머지하자.
+
+src 폴더 내의 것들만 날리고 머지함. 
+
+폰트문제는 아니네. 별도로 한글 폰트 구해서 넣었는데 안됨. 
+
+```c++
+  TE_output->append(QString::fromStdString("한글 QString::fromStdString"));
+  TE_output->append(QString("한글 QString"));
+  TE_output->append("한글");
+```
+이게
+
+```
+�ѱ� QString::fromStdString
+�ѱ� QString
+�ѱ�
+```
+
+이래 뜬다. 
+
+```c++
+ TE_output->append(QString::from("한글 fromLocal8Bit"));
+```
+
+으로 출력 성공.. 어째서..
+
+일단은 string -> char* -> QString 이렇게 출력.
+
+
+
+
+---
+
+```cpp
+void UI_Module::SendLog(const char* _log){
+  printf("SendLog : %s\n",_log);
+//  emit(SignalLog( _log ));
+  krun->temp_log = std::string(_log);
+  emit(SignalLogAlt());
+}
+```
+
+여기서 로그가 잘 안찍힘. 인자 전달이 잘 안되서 멤버 변수를 직접수정하고 갱신을 요청하는 방식을 사용했는데, 
+
+signal - slot은 별도의 Qt 쓰레드에서 관리하기 때문에 
+
+```
+SendLog : 2019-09-18_16-36-08.wav Created
+SendLog : 인식중
+slot_logAlt 인식중
+slot_logAlt 인식중
+```
+
+이런 결과가 생긴다. 
+
+일단은 logAlt 대신 log로 다시 돌림. 
+
+현재는 작동 잘하나 지켜봐야함.
+
+
+
+---
+
+시리얼 포트 문제를 파악해보자.
+
+---
+
+GCP 안된다. 파이썬이 안열리는가.
+
+열리기는 하는데. 
+
+웨이브 생성후 except 되네.
+
+```python
+        config = types.RecognitionConfig(
+            encoding=enums.RecognitionConfig.AudioEncoding.LINEAR16,
+            sample_rate_hertz=16000,
+            language_code='ko-KR')
+```
+
+여기서 except  되네. 음.
+
+---
+
+VAD 튜닝이 필요할 것 같다. 노트북 입력일때랑 MEMS 입력일 때랑 확실히 다르네
+
+### 09.19
+
+GCP - speech가 안됨.  잘되던 코드도 안 되는 걸로 보아 계정문제인거 같은데. iipsogang의 비번을 모르겠다. 
+
+엥간한거 다 넣어봤는데 안되네
+
+비번찾음 새로운 까먹은 조합이 있었네. 
+
+```무료 평가판이 종료되었지만 Google Cloud Platform을 계속 사용할 수 있습니다. 서비스를 복원하려면 2019년 10월 17일까지 업그레이드하세요.```
+
+라고 뜨는군 
+
+윈도 경로문제인거 같음. 
+
+경로를 손보니
+
+```python
+print('GCP::requesting : '  +speech_file )
+response = client.recognize(config, audio)
+```
+여기서 문제네. recognize를 안해주네.
+
+2018년 9월 17일. 12개월 무료 평가판 기간이 2019년 9월 17일 부로 끝난듯.
+결제해야하네
+
+ TODO
++ 녹음 기능 추가 - CLI,Recorder,GUI
++ installer 손보기
++ 아이콘 달기
++ 리눅스 인스톨러
+
+Widget에서 integer 인지 아닌지 명시를 하자. 추가함. 
+
+LineEdit에서 변경시 double integer 유효성 확인 후 수정사항 적용시키자. 
+
+
+TextEdit 시 보다
+
+```
+void QLineEdit::textChanged(const QString &text)
+This signal is emitted whenever the text changes. The text argument is the new text.
+
+Unlike textEdited(), this signal is also emitted when the text is changed programmatically, for example, by calling setText().
+
+Note: Notifier signal for property text.
+```
+
+추가함. 
+
+---
+
+PLASMA 를 써보자.
+v19 를 써보려 했는데, omp 4.5 이상을 요구한다.  
+v17은 cmake가 없네. 
+v18 도 omp 4.5 이상을 요구하네, Window 에서 2.0 버전 그것도 불완전한 2.0 까지만 지원하는데.. 
+
+blas를 필수적으로 까는 거 이전에 여기서 문제가 있을 수 있다. 
+
+ICC를 쓰면 되는데,, ICC 쓰면 verdigris가 안되고.
+
+```
+make[2]: *** [CMakeFiles/iip_demo.dir/src/K/KSpectrogram.cpp.o] 오류 2
+/home/kbh/git/IIP_Demo/lib/verdigris/wobjectimpl.h(755): error: expression must have a constant value
+      constexpr static Arrays arrays = buildArrays();
+```
+
+```cpp
+  constexpr static auto buildArrays() {
+        auto r = Arrays{};
+        DataBuilder b{r};
+        generateDataPass<T>(b);
+        return r;
+    }
+```
+
+```constexpr``` 이 맞는데. 
+
+선택지
+1. 다른 egien 라이브러리 추가 조사
+2. verdigris fix
+3. eigen library 사용
+4. ???
+
+문제점
+1. OpenMp > 2.0   < - > MSVC  ==> ICC로 해결
+2. Verdigris(GUI) < - > ICC   ==> ???
+
+---
+
+openblas 써보자. 
+
+lapacke.h 를 써야한다. 저번에 어떻게 썼더라? lapacke.h 는 어디서 가져온 거고?
+
+```lapack-netlib/INCLUDE``` 안에 들어는 있는데 이게 맞는 건가? 일단 그거 가져와서 하는데 되는 거 같다. 
+
+문제는 lapack 에 함수 종류가 많네 
+
+```
+zheev
+zheev_2stage
+zheevd
+zheevd_2stage
+zheevr
+zheevr_2stage
+zheevx
+zheevx_2stage
+zhegv
+zhegv_2stage
+zhegvd
+zhegvx
+```
+
+다 고윳값을 구한다는 거 같은데, 조금씩 다르다. 
+
+
++  ZHEEV
+: computes all eigenvalues and, optionally, eigenvectors of a
+ complex Hermitian matrix A.
+
++  ZHEEV_2STAGE
+:  computes all eigenvalues and, optionally, eigenvectors of a
+ complex Hermitian matrix A using the 2stage technique for
+ the reduction to tridiagonal.
+
++ ZHEEVD 
+: computes all eigenvalues and, optionally, eigenvectors of a
+ complex Hermitian matrix A.  If eigenvectors are desired, it uses a
+ divide and conquer algorithm.
+ The divide and conquer algorithm makes very mild assumptions about
+ floating point arithmetic. It will work on machines with a guard
+ digit in add/subtract, or on those binary machines without guard
+ digits which subtract like the Cray X-MP, Cray Y-MP, Cray C-90, or
+ Cray-2. It could conceivably fail on hexadecimal or decimal machines
+ without guard digits, but we know of none.
+
++ ZHEEVR
+: computes selected eigenvalues and, optionally, eigenvectors
+ of a complex Hermitian matrix A.  Eigenvalues and eigenvectors can
+ be selected by specifying either a range of values or a range of
+ indices for the desired eigenvalues.
+
+ ZHEEVR first reduces the matrix A to tridiagonal form T with a call
+ to ZHETRD.  Then, whenever possible, ZHEEVR calls ZSTEMR to compute
+ eigenspectrum using Relatively Robust Representations.  ZSTEMR
+ computes eigenvalues by the dqds algorithm, while orthogonal
+ eigenvectors are computed from various "good" L D L^T representations
+ (also known as Relatively Robust Representations). Gram-Schmidt
+ orthogonalization is avoided as far as possible. More specifically,
+ the various steps of the algorithm are as follows.
+
+ For each unreduced block (submatrix) of T,
+    (a) Compute T - sigma I  = L D L^T, so that L and D
+        define all the wanted eigenvalues to high relative accuracy.
+        This means that small relative changes in the entries of D and L
+        cause only small relative changes in the eigenvalues and
+        eigenvectors. The standard (unfactored) representation of the
+        tridiagonal matrix T does not have this property in general.
+    (b) Compute the eigenvalues to suitable accuracy.
+        If the eigenvectors are desired, the algorithm attains full
+        accuracy of the computed eigenvalues only right before
+        the corresponding vectors have to be computed, see steps c) and d).
+    (c) For each cluster of close eigenvalues, select a new
+        shift close to the cluster, find a new factorization, and refine
+        the shifted eigenvalues to suitable accuracy.
+    (d) For each eigenvalue with a large enough relative separation compute
+        the corresponding eigenvector by forming a rank revealing twisted
+        factorization. Go back to (c) for any clusters that remain.
+
+ The desired accuracy of the output can be specified by the input
+ parameter ABSTOL.
+
+ For more details, see DSTEMR's documentation and:
+ - Inderjit S. Dhillon and Beresford N. Parlett: "Multiple representations
+   to compute orthogonal eigenvectors of symmetric tridiagonal matrices,"
+   Linear Algebra and its Applications, 387(1), pp. 1-28, August 2004.
+ - Inderjit Dhillon and Beresford Parlett: "Orthogonal Eigenvectors and
+   Relative Gaps," SIAM Journal on Matrix Analysis and Applications, Vol. 25,
+   2004.  Also LAPACK Working Note 154.
+ - Inderjit Dhillon: "A new O(n^2) algorithm for the symmetric
+   tridiagonal eigenvalue/eigenvector problem",
+   Computer Science Division Technical Report No. UCB/CSD-97-971,
+   UC Berkeley, May 1997.
+
+
+ Note 1 : ZHEEVR calls ZSTEMR when the full spectrum is requested
+ on machines which conform to the ieee-754 floating point standard.
+ ZHEEVR calls DSTEBZ and ZSTEIN on non-ieee machines and
+ when partial spectrum requests are made.
+
+ Normal execution of ZSTEMR may create NaNs and infinities and
+ hence may abort due to a floating point exception in environments
+ which do not handle NaNs and infinities in the ieee standard default
+ manner.
+
++  ZHEEVX
+ :  computes selected eigenvalues and, optionally, eigenvectors
+ of a complex Hermitian matrix A.  Eigenvalues and eigenvectors can
+ be selected by specifying either a range of values or a range of
+ indices for the desired eigenvalues.
+
++  ZHEGV
+:  computes all the eigenvalues, and optionally, the eigenvectors
+ of a complex generalized Hermitian-definite eigenproblem, of the form
+ A*x=(lambda)*B*x,  A*Bx=(lambda)*x,  or B*A*x=(lambda)*x.
+ Here A and B are assumed to be Hermitian and B is also
+ positive definite.
+
++  ZHEGVD 
+: computes all the eigenvalues, and optionally, the eigenvectors
+ of a complex generalized Hermitian-definite eigenproblem, of the form
+ A*x=(lambda)*B*x,  A*Bx=(lambda)*x,  or B*A*x=(lambda)*x.  Here A and
+ B are assumed to be Hermitian and B is also positive definite.
+ If eigenvectors are desired, it uses a divide and conquer algorithm.
+
+ The divide and conquer algorithm makes very mild assumptions about
+ floating point arithmetic. It will work on machines with a guard
+ digit in add/subtract, or on those binary machines without guard
+ digits which subtract like the Cray X-MP, Cray Y-MP, Cray C-90, or
+ Cray-2. It could conceivably fail on hexadecimal or decimal machines
+ without guard digits, but we know of none.
+
++  ZHEGVX 
+ : computes selected eigenvalues, and optionally, eigenvectors
+ of a complex generalized Hermitian-definite eigenproblem, of the form
+ A*x=(lambda)*B*x,  A*Bx=(lambda)*x,  or B*A*x=(lambda)*x.  Here A and
+ B are assumed to be Hermitian and B is also positive definite.
+ Eigenvalues and eigenvectors can be selected by specifying either a
+ range of values or a range of indices for the desired eigenvalues.
+
+일단 가장 기본 형태부터 써보자. 
+
+
+```fortran
+subroutine zheev	
+(
+character 	JOBZ,
+character 	UPLO,
+integer 	N,
+complex*16, dimension( lda, * ) 	A,
+integer 	LDA,
+double precision, dimension( * ) 	W,
+complex*16, dimension( * ) 	WORK,
+integer 	LWORK,
+double precision, dimension( * ) 	RWORK,
+integer 	INFO 
+)	
+```
+
+```cpp
+ LAPACK_zheev( &jobz, &uplo, &n, a, &lda, w, work, &lwork, rwork,
+                      &info );
+```
+
+```
+
+[in]	JOBZ	
+          JOBZ is CHARACTER*1
+          = 'N':  Compute eigenvalues only;
+          = 'V':  Compute eigenvalues and eigenvectors.
+
+
+[in]	UPLO	
+          UPLO is CHARACTER*1
+          = 'U':  Upper triangle of A is stored;
+          = 'L':  Lower triangle of A is stored.
+[in]	N	
+          N is INTEGER
+          The order of the matrix A.  N >= 0.
+[in,out]	A	
+          A is COMPLEX*16 array, dimension (LDA, N)
+          On entry, the Hermitian matrix A.  If UPLO = 'U', the
+          leading N-by-N upper triangular part of A contains the
+          upper triangular part of the matrix A.  If UPLO = 'L',
+          the leading N-by-N lower triangular part of A contains
+          the lower triangular part of the matrix A.
+          On exit, if JOBZ = 'V', then if INFO = 0, A contains the
+          orthonormal eigenvectors of the matrix A.
+          If JOBZ = 'N', then on exit the lower triangle (if UPLO='L')
+          or the upper triangle (if UPLO='U') of A, including the
+          diagonal, is destroyed.
+[in]	LDA	
+          LDA is INTEGER
+          The leading dimension of the array A.  LDA >= max(1,N).
+[out]	W	
+          W is DOUBLE PRECISION array, dimension (N)
+          If INFO = 0, the eigenvalues in ascending order.
+[out]	WORK	
+          WORK is COMPLEX*16 array, dimension (MAX(1,LWORK))
+          On exit, if INFO = 0, WORK(1) returns the optimal LWORK.
+[in]	LWORK	
+          LWORK is INTEGER
+          The length of the array WORK.  LWORK >= max(1,2*N-1).
+          For optimal efficiency, LWORK >= (NB+1)*N,
+          where NB is the blocksize for ZHETRD returned by ILAENV.
+
+          If LWORK = -1, then a workspace query is assumed; the routine
+          only calculates the optimal size of the WORK array, returns
+          this value as the first entry of the WORK array, and no error
+          message related to LWORK is issued by XERBLA.
+[out]	RWORK	
+          RWORK is DOUBLE PRECISION array, dimension (max(1, 3*N-2))
+[out]	INFO	
+          INFO is INTEGER
+          = 0:  successful exit
+          < 0:  if INFO = -i, the i-th argument had an illegal value
+          > 0:  if INFO = i, the algorithm failed to converge; i
+                off-diagonal elements of an intermediate tridiagonal
+                form did not converge to zero.
+
+```
+
+BLAS 에서는 복소수도 double 2개로 받더니, 여긴 또 ```__complex__ double```을 달라고한다. 
+
+일단 캐스팅해서 돌려보자. 돌아가기는 하고, 멀티 쓰레딩도 된다. 
+
+데이터 읽어서 연산은 시켰으나. 검증하는 부분을 구현해야겠다. 
+
+데이터 넣는 부분부터 틀렸다. 
+행렬이 두 알고리즘 모두 잘 안들어간다. 
+
+### 09.03
+
+N = 4 가지고 테스트 하자
+
+```matlab
+   A
+   1.2589 + 0.0000i   1.0763 - 0.5200i   0.1690 - 0.2269i   1.7411 - 0.6080i
+   1.0763 + 0.5200i  -1.6098 + 0.0000i   0.4868 - 0.1828i   0.0645 - 1.5256i
+   0.1690 + 0.2269i   0.4868 + 0.1828i  -1.3695 + 0.0000i   1.5417 + 0.6276i
+   1.7411 + 0.6080i   0.0645 + 1.5256i   1.5417 - 0.6276i  -1.4325 + 0.0000i
+
+   V
+   0.2812 + 0.0093i  -0.1539 + 0.0352i  -0.3312 + 0.4423i  -0.6516 + 0.4074i
+  -0.1814 - 0.4834i   0.6173 + 0.2624i  -0.2216 - 0.3752i  -0.2401 + 0.1899i
+   0.3595 + 0.2247i   0.5886 - 0.3612i   0.5137 + 0.0752i  -0.2598 - 0.0792i
+  -0.6889 + 0.0000i  -0.2196 + 0.0000i   0.4850 + 0.0000i  -0.4919 + 0.0000i
+
+   D
+   -4.1976         0         0         0
+         0   -1.5736         0         0
+         0         0   -0.2949         0
+         0         0         0    2.9132
+
+   sum(A*V  -  V*D,'all') = -1.8180e-15 + 4.7531e-16i
+
+```
+
+일단 eigen Library 의 A*V - V*D 가 0에 근사함.
+
+---
+
+OpenBLAS의 LAPACK을 해보자. BLAS 출력을 잘못하고 있었다. idx 초기화를 안했네. 
+
+OpenBLAS의 LAPACK이 잘 되는지 검증을 해보자. 
+
+cplx mat * cplx mat  - cplx mat * real vec  을 해야하는데  
+행렬 곱은 blas 쓰고 행렬x벡터는 for문 그냥 돌리자.  
+
+zheev 가 inplace 였다. 복사도 해야하네. 
+아니다 inplace 시키는게 hermitian 이라 대칭이므로 Upper 또는 Lower에서 넣어준다는 것. 그러면 대칭행렬 곱 연산 루틴이 있다면 그걸 쓰면 되지 않을까 싶은데 생각해보니까 대각성분이 바뀌니까. 안될거 같네.
+
+복사해서 해야겠다. 
+
+cblas하고 lapacke 하고 같이 include 하니까 충돌나는데, 
+
+OpenBLAS 빌드시에 LAPACKE 을 쓴다는 옵션을 줘야했던가 같은 실낱같은 기억이 스쳐지나갔다. ```iip_sph_pp``` 를 진행할 떄는 apt-get 으로 패키지 openblas를 사용했던것 같다 - lapack 포함 빌드인 - 
+
+상당히 꼬일 거 같은데.. linux에서 이걸 해결해서 빌드하고 링크한다 쳐도 윈도우에서는 더 복잡하게 가야하지 않을까? 아니다 cmake에 MSVC 옵션이 있기는 하니까? 근데 얘들 윈도우에서 잘 안되잖아. 
+
+조사를 더 해봐야겠다. 
+
+https://github.com/xianyi/OpenBLAS/wiki/How-to-use-OpenBLAS-in-Microsoft-Visual-Studio  
+
+된다는 거 같다. 
+
+그럼 OpenBLAS가 lapack을 같이 쓸 수 있게하는 옵션을 찾아보자.
+
+일단 OpenBLAS안의 lapack 폴더는 그냥 netlib 의 lapack을 냅다 들고온 거같다. 빌드도 안되네 이건 옵션을 제대로 안줘서 인거 같다.  
+
+아니면 편하게 apt-get으로 한거를 파일 가져와서 링크하며 되지 않을까?  
+
+https://github.com/gogyzzz/iip_sph_pp/issues/91  아.. 좀 더 자세히 읽었어야 했네. 여기서 한 대로 다시 해보자.  
+
+make install 해서 이동된 헤더들만 사용. 빌드는 성공하였다. 이제 다시 테스트로 돌아가자.  
+
+테스트 성공. 
+
+---
+
+Eigen 과 Lapack  모두 오차가 최대 e-14 이다 대체로 e-16 정도 되는 것 같다. 
+
+
+lapack 이 쓰레딩도 하고 최적화도 되어있어서 10배 빠르다. matlab 과는 6이상일 떄는 많이 격차가 나지만 그 이하에서는 거의 차이나지 않는다. 
+
+ZHEEV_2STAGE 이랑 ZHEEVD 만 해보면 될거 같다. 다른 것들은 같은 알고리즘에 좀 더 특정적인 인터페이스로 보임.  
+
+일단 ZHEEVD 먼저 해보자.  
+
+---
+
+openblas를 submodule 로해서 환경에 맞게 빌드하도록 해야겠다. 설치파일로 쓸거는 어쩔 수 없을 거 같긴한데. 
+
+OpenBLAS에 dynamic으로 하는게 있던게 그것도 한번 알아봐야겠다. 
+
+### 09.04
+
+#### TODO
++ ZHEEV_2STAGE
++ ZHEEVD
++ BLAZE
++ PLASMA - QUARK
++ lapack 래핑. 
+
+---
+
+zheev_2stage 는 OpenBLAS 에서 구현이 안되어있네,
+
+LAPACKE_zheevd 는 zheevd 랑 2stage 둘 다 구현이 되어있다. 
+
+zheevd 가 파라매터가 다르고 integer array work가 추가적으로 필요하다.  
+
+첵크해서 추가할까. 아니면 그냥 사이즈 받을 때 할당 해버릴까. 아니면 상속 구조로 갈까? 
+
+상속 구조로 가는게 나은거 같기도 하네. 
+
+zheev -> zheevd 상속.  
+
+---
+
+zheevd 랑 zheev 가 그렇게 차이가 없다. size 2, 4 일 때 빠른 알고리즘이 서로 바뀌긴하나. 유의미한 차이를 내지 못한다. 
+
+zheevd_2stage 가 ```symbol lookup error: undefined symbol : zheevd_2stage``` 가 뜬다. 구현이 안된걸까. 내가 링크를 잘 못한 걸까. 오타를 낸걸까.  
+
+https://github.com/xianyi/OpenBLAS/blob/ce3651516f12079f3ca2418aa85b9ad571c3a391/lapack-netlib/LAPACKE/src/lapacke_zheevd.c
+
+https://github.com/xianyi/OpenBLAS/blob/ce3651516f12079f3ca2418aa85b9ad571c3a391/lapack-netlib/LAPACKE/src/lapacke_zheevd_2stage.c
+
+보니까 내가 쓰고 있는 함수랑 인자가 다른데..? 뭔가 다른걸 링크해서 쓰고 있는 건가. 뭘 가져다 쓰고 있는 거지.  
+
+---
+
+역행렬 구하는 것 처럼. 고윳값 구하는 것도 코드짜여진거-낮은 채널- 있으면 찾아보자.
+
+일단 blaze 에는 안보이는 거 같다. 
+
+이건 좀 구하기 힘들거 같은데, 
+
+---
+
+### TODO
++ BLAZE
++ PLASMA - QUARK(구버전)
++ (openBLAS를 쓴다면)openblas set-up script 
++ 일반적인 역행렬 함수
+
+blaze 를 일단 써보자. 
+
+blaze is mere wrapping of blas/lapack.  옛날에도 blas에서 사용하려고 해서 알아보니까. 그냥 함수 래핑이었다. 결국엔 어떤 blas를 사용하는가의 문제이지 이게 뭘가를 해줄 거 같지는 않다. 
+
+그럼 일단 이정도 까지만 하자
+
+코드 짠거를 프로젝트에 합치자. 그리고 원래 프로젝트 작업 계속하자. 
+
+BLAS/LAPACK을 처리하는게 급선무겠다. 
+https://github.com/kooBH/IIP_Demo/issues/302  
+
+
+---
+### 09.05
+
+### TODO
++ BLAZE
++ PLASMA - QUARK(구버전)
++ (openBLAS를 쓴다면)openblas set-up script 
++ 일반적인 역행렬 함수
+
+
+역행렬 구하는 루틴을 만들자. 
+
+일단  blaze 에서 가져와서 변환할까 iip_sph_pp 에서 가져와서 변환할까 부터 정하자. 
+
+둘 다 별 차이는 없을 듯. 각자의 타입을 사용하도록 되어있는데. 나는 그냥 double 2개를 re,im 으로 해서 raw하게 할 것인기 떄문에 
+어차피 다 변환해야하는 건 같다. 커스텀한 타입을 사용하는 것은 그 타입을 계속 사용한다는 전제하에서는 굉장히 편리하지만, 그렇지 않을 경우 귀찮고 까다로워진다. 그냥 dobule 형으로 해도 직관적으로 받아들이기 쉽기 때문에 이렇게 간다. 
+
+일단 복소수만 하면 되니까 복소수 행렬만 변환하는 스크립트를 짜보자. 전에 짠게 남아있으면 좋을텐데 그럴거 같지는 않네.  
+
+두 코드가 다른 것은 blaze 는 복소수 타입의 연산을 오버로딩해서 구현해놨지만 sph 코드는 c 코드라서 복소수 구조체를 사용하되 연산 자체는  raw하게 되어있다. 
+
+### 09.06
+
+예전 스크립트가 남아있지는 않다. 
+
+음. 로컬 구조체로 연산을 시키고 들어오는 인자를 캐스팅하면 되지않을까? 테스트 해보자. 그러면 iip_sph_pp 의 코드를 그대로 쓸 수 있을 것 같다. 
+
+아 생각해보니까. 데이터가 일차원 배열에 있어야하네. blas 쓸려면.. 데이터 복사 작업을 한번 하든지 아니면 어차피 cpp 코드는 내가 짜야하니까 처음부터 일차원으로 해버리는 것도 괜찮을 것 같다. 성능 차이 한번 테스트는 해봐야겠지만. 
+
+일단은 캐스팅해서 해서 테스트 해보자. 
+
+```matlab
+A = [[0.840188 + 0.394383i,0.783099 + 0.798440i],
+    [0.911647 + 0.197551i,0.335223 + 0.768230i]];
+A
+inv(A)
+%(-0.795904 + -1.185639i)(1.555857 + 1.099865i)
+%(1.588316 + 0.053474i)(-1.528483 + -0.405178i)
+```
+
+잘된다. 코드는 iip_sph_pp 의 코드에 캐스팅만 넣어두었다. 
+
+추가하자. 
+
+lapack 에서 work 를 요구하는데 그냥 이거 클래스로 해버릴까? 근데 n을 명시해야하는데. 클래스 생성자에서 받고 루틴을 그냥 호출하는 식으로 일단 해야겠다. 
+
+아 기존의 6by6랑 충돌나네.
+
+refactoring 하고 몇가지 수정해서 넣음
+
+### 09.09
+
+### TODO
++ 파이선 standalone으로 사용할 수 있게하기
++ 런타임에서 쓰레드수를 정하게 하기. 
+==> 개발용이 아닌 임의의 pc에서 설치하고 그 pc에 맞게 실행이 가능한가? 의 문제.
+
+임의의 pc에서 gcp 테스트를 해야하는데. 
+
+1. 이 프로젝트를 들고가기
+2. 녹음 어플로 녹음 시켜서 별도의 파이썬 코드로 인식  
+
+[윈도콘솔창 없이 런](https://stackoverflow.com/questions/9618815/i-dont-want-console-to-appear-when-i-run-c-program )
+
+### 09.10
+
+#### 전날 발견한 문제
+
+---
+
+시리얼 포트 게인 설정시 응답없음 되는 상황
+포트 인식은 됨. 에러도 성공도 아닌 무응답 상태로 빠짐  
+
+---
+
+실행 파일로 release 시킨 상태에서 gcp를 어떻게 쓰게 할 것인가?  
+일단 최소한의 요구조건만 맞춘 파이썬을 포함시켜서 실행하였음. 다만 용량이 150mb 정도 되는데 어느 정도까지 줄일 수 있을 지 확인해봐야함.  
+
+---
+
+녹음시 현재는 버튼으로 조작하지만 시간을 설정해서 녹음하는 것도 추가해야할 것 같다.  
+
+---
+
+VAD & GCP 시 vad가 발화를 인식하지 않음.  
+데이터가 중간에 없어지는 지 vad 의 문제인지 파악해야함
+
+PreAlgo가 스코프 밖에 있었다. AfterInput 추가하면서 스코프에서 벗어난듯. 수정함.  
+
+그래도 vad 인식은 안된다. 코드가 들어가기는 하는데 어디서 문제난것일까.  
+
+스케일링이 문제인가? 
+차이가 없다. 들어오는 입력의 크기에 상관없에 psy가 nan이네.  
+
+vad 생성자를 한번봐야겠다. 생성자는 잘 들어오는데.. 
+
+왜 안되는거냐.. 입력은 잘 들어오는데. vad 알고리즘 코드를 건든 적도 없는데.  좀 더 테스트 해보자. 
+
+
+### 09.16
+
+wav input 시에 인식은 되는거 같은데 ui부분에서 터짐.
+
+stdio.h에서 오류 발생. windows 라서 발생한 것일 확률이 높다.  
+
++ GCP 부분에서 문제일으켰을 가능성이 크다. 
+
+----
+
+real time은
+
+raw,data 둘 다 들어오는 데는 문제가 없지만.  
+
+wav input에 비하면 전체적인 크기가 작다. 
+
+wav input 이면 psy가 제대로 들어오는데, real time 이면 nan이 뜨고. 그냥 전체 값을 찍어서 봐야겠다. 
+
+아 스피커 설정 
+### 09.02 
+
+### TODO
++ 녹음 기능 추가 - CLI,Recorder,GUI
++ installer 손보기
++ 아이콘 달기
++ 리눅스 인스톨러
+
+Widget에서 integer 인지 아닌지 명시를 하자. 추가함. 
+
+LineEdit에서 변경시 double integer 유효성 확인 후 수정사항 적용시키자. 
+
+
+TextEdit 시 보다
+
+```
+void QLineEdit::textChanged(const QString &text)
+This signal is emitted whenever the text changes. The text argument is the new text.
+
+Unlike textEdited(), this signal is also emitted when the text is changed programmatically, for example, by calling setText().
+
+Note: Notifier signal for property text.
+```
+
+추가함. 
+
+---
+
+PLASMA 를 써보자.
+v19 를 써보려 했는데, omp 4.5 이상을 요구한다.  
+v17은 cmake가 없네. 
+v18 도 omp 4.5 이상을 요구하네, Window 에서 2.0 버전 그것도 불완전한 2.0 까지만 지원하는데.. 
+
+blas를 필수적으로 까는 거 이전에 여기서 문제가 있을 수 있다. 
+
+ICC를 쓰면 되는데,, ICC 쓰면 verdigris가 안되고.
+
+```
+make[2]: *** [CMakeFiles/iip_demo.dir/src/K/KSpectrogram.cpp.o] 오류 2
+/home/kbh/git/IIP_Demo/lib/verdigris/wobjectimpl.h(755): error: expression must have a constant value
+      constexpr static Arrays arrays = buildArrays();
+```
+
+```cpp
+  constexpr static auto buildArrays() {
+        auto r = Arrays{};
+        DataBuilder b{r};
+        generateDataPass<T>(b);
+        return r;
+    }
+```
+
+```constexpr``` 이 맞는데. 
+
+선택지
+1. 다른 egien 라이브러리 추가 조사
+2. verdigris fix
+3. eigen library 사용
+4. ???
+
+문제점
+1. OpenMp > 2.0   < - > MSVC  ==> ICC로 해결
+2. Verdigris(GUI) < - > ICC   ==> ???
+
+---
+
+openblas 써보자. 
+
+lapacke.h 를 써야한다. 저번에 어떻게 썼더라? lapacke.h 는 어디서 가져온 거고?
+
+```lapack-netlib/INCLUDE``` 안에 들어는 있는데 이게 맞는 건가? 일단 그거 가져와서 하는데 되는 거 같다. 
+
+문제는 lapack 에 함수 종류가 많네 
+
+```
+zheev
+zheev_2stage
+zheevd
+zheevd_2stage
+zheevr
+zheevr_2stage
+zheevx
+zheevx_2stage
+zhegv
+zhegv_2stage
+zhegvd
+zhegvx
+```
+
+다 고윳값을 구한다는 거 같은데, 조금씩 다르다. 
+
+
++  ZHEEV
+: computes all eigenvalues and, optionally, eigenvectors of a
+ complex Hermitian matrix A.
+
++  ZHEEV_2STAGE
+:  computes all eigenvalues and, optionally, eigenvectors of a
+ complex Hermitian matrix A using the 2stage technique for
+ the reduction to tridiagonal.
+
++ ZHEEVD 
+: computes all eigenvalues and, optionally, eigenvectors of a
+ complex Hermitian matrix A.  If eigenvectors are desired, it uses a
+ divide and conquer algorithm.
+ The divide and conquer algorithm makes very mild assumptions about
+ floating point arithmetic. It will work on machines with a guard
+ digit in add/subtract, or on those binary machines without guard
+ digits which subtract like the Cray X-MP, Cray Y-MP, Cray C-90, or
+ Cray-2. It could conceivably fail on hexadecimal or decimal machines
+ without guard digits, but we know of none.
+
++ ZHEEVR
+: computes selected eigenvalues and, optionally, eigenvectors
+ of a complex Hermitian matrix A.  Eigenvalues and eigenvectors can
+ be selected by specifying either a range of values or a range of
+ indices for the desired eigenvalues.
+
+ ZHEEVR first reduces the matrix A to tridiagonal form T with a call
+ to ZHETRD.  Then, whenever possible, ZHEEVR calls ZSTEMR to compute
+ eigenspectrum using Relatively Robust Representations.  ZSTEMR
+ computes eigenvalues by the dqds algorithm, while orthogonal
+ eigenvectors are computed from various "good" L D L^T representations
+ (also known as Relatively Robust Representations). Gram-Schmidt
+ orthogonalization is avoided as far as possible. More specifically,
+ the various steps of the algorithm are as follows.
+
+ For each unreduced block (submatrix) of T,
+    (a) Compute T - sigma I  = L D L^T, so that L and D
+        define all the wanted eigenvalues to high relative accuracy.
+        This means that small relative changes in the entries of D and L
+        cause only small relative changes in the eigenvalues and
+        eigenvectors. The standard (unfactored) representation of the
+        tridiagonal matrix T does not have this property in general.
+    (b) Compute the eigenvalues to suitable accuracy.
+        If the eigenvectors are desired, the algorithm attains full
+        accuracy of the computed eigenvalues only right before
+        the corresponding vectors have to be computed, see steps c) and d).
+    (c) For each cluster of close eigenvalues, select a new
+        shift close to the cluster, find a new factorization, and refine
+        the shifted eigenvalues to suitable accuracy.
+    (d) For each eigenvalue with a large enough relative separation compute
+        the corresponding eigenvector by forming a rank revealing twisted
+        factorization. Go back to (c) for any clusters that remain.
+
+ The desired accuracy of the output can be specified by the input
+ parameter ABSTOL.
+
+ For more details, see DSTEMR's documentation and:
+ - Inderjit S. Dhillon and Beresford N. Parlett: "Multiple representations
+   to compute orthogonal eigenvectors of symmetric tridiagonal matrices,"
+   Linear Algebra and its Applications, 387(1), pp. 1-28, August 2004.
+ - Inderjit Dhillon and Beresford Parlett: "Orthogonal Eigenvectors and
+   Relative Gaps," SIAM Journal on Matrix Analysis and Applications, Vol. 25,
+   2004.  Also LAPACK Working Note 154.
+ - Inderjit Dhillon: "A new O(n^2) algorithm for the symmetric
+   tridiagonal eigenvalue/eigenvector problem",
+   Computer Science Division Technical Report No. UCB/CSD-97-971,
+   UC Berkeley, May 1997.
+
+
+ Note 1 : ZHEEVR calls ZSTEMR when the full spectrum is requested
+ on machines which conform to the ieee-754 floating point standard.
+ ZHEEVR calls DSTEBZ and ZSTEIN on non-ieee machines and
+ when partial spectrum requests are made.
+
+ Normal execution of ZSTEMR may create NaNs and infinities and
+ hence may abort due to a floating point exception in environments
+ which do not handle NaNs and infinities in the ieee standard default
+ manner.
+
++  ZHEEVX
+ :  computes selected eigenvalues and, optionally, eigenvectors
+ of a complex Hermitian matrix A.  Eigenvalues and eigenvectors can
+ be selected by specifying either a range of values or a range of
+ indices for the desired eigenvalues.
+
++  ZHEGV
+:  computes all the eigenvalues, and optionally, the eigenvectors
+ of a complex generalized Hermitian-definite eigenproblem, of the form
+ A*x=(lambda)*B*x,  A*Bx=(lambda)*x,  or B*A*x=(lambda)*x.
+ Here A and B are assumed to be Hermitian and B is also
+ positive definite.
+
++  ZHEGVD 
+: computes all the eigenvalues, and optionally, the eigenvectors
+ of a complex generalized Hermitian-definite eigenproblem, of the form
+ A*x=(lambda)*B*x,  A*Bx=(lambda)*x,  or B*A*x=(lambda)*x.  Here A and
+ B are assumed to be Hermitian and B is also positive definite.
+ If eigenvectors are desired, it uses a divide and conquer algorithm.
+
+ The divide and conquer algorithm makes very mild assumptions about
+ floating point arithmetic. It will work on machines with a guard
+ digit in add/subtract, or on those binary machines without guard
+ digits which subtract like the Cray X-MP, Cray Y-MP, Cray C-90, or
+ Cray-2. It could conceivably fail on hexadecimal or decimal machines
+ without guard digits, but we know of none.
+
++  ZHEGVX 
+ : computes selected eigenvalues, and optionally, eigenvectors
+ of a complex generalized Hermitian-definite eigenproblem, of the form
+ A*x=(lambda)*B*x,  A*Bx=(lambda)*x,  or B*A*x=(lambda)*x.  Here A and
+ B are assumed to be Hermitian and B is also positive definite.
+ Eigenvalues and eigenvectors can be selected by specifying either a
+ range of values or a range of indices for the desired eigenvalues.
+
+일단 가장 기본 형태부터 써보자. 
+
+
+```fortran
+subroutine zheev	
+(
+character 	JOBZ,
+character 	UPLO,
+integer 	N,
+complex*16, dimension( lda, * ) 	A,
+integer 	LDA,
+double precision, dimension( * ) 	W,
+complex*16, dimension( * ) 	WORK,
+integer 	LWORK,
+double precision, dimension( * ) 	RWORK,
+integer 	INFO 
+)	
+```
+
+```cpp
+ LAPACK_zheev( &jobz, &uplo, &n, a, &lda, w, work, &lwork, rwork,
+                      &info );
+```
+
+```
+
+[in]	JOBZ	
+          JOBZ is CHARACTER*1
+          = 'N':  Compute eigenvalues only;
+          = 'V':  Compute eigenvalues and eigenvectors.
+
+
+[in]	UPLO	
+          UPLO is CHARACTER*1
+          = 'U':  Upper triangle of A is stored;
+          = 'L':  Lower triangle of A is stored.
+[in]	N	
+          N is INTEGER
+          The order of the matrix A.  N >= 0.
+[in,out]	A	
+          A is COMPLEX*16 array, dimension (LDA, N)
+          On entry, the Hermitian matrix A.  If UPLO = 'U', the
+          leading N-by-N upper triangular part of A contains the
+          upper triangular part of the matrix A.  If UPLO = 'L',
+          the leading N-by-N lower triangular part of A contains
+          the lower triangular part of the matrix A.
+          On exit, if JOBZ = 'V', then if INFO = 0, A contains the
+          orthonormal eigenvectors of the matrix A.
+          If JOBZ = 'N', then on exit the lower triangle (if UPLO='L')
+          or the upper triangle (if UPLO='U') of A, including the
+          diagonal, is destroyed.
+[in]	LDA	
+          LDA is INTEGER
+          The leading dimension of the array A.  LDA >= max(1,N).
+[out]	W	
+          W is DOUBLE PRECISION array, dimension (N)
+          If INFO = 0, the eigenvalues in ascending order.
+[out]	WORK	
+          WORK is COMPLEX*16 array, dimension (MAX(1,LWORK))
+          On exit, if INFO = 0, WORK(1) returns the optimal LWORK.
+[in]	LWORK	
+          LWORK is INTEGER
+          The length of the array WORK.  LWORK >= max(1,2*N-1).
+          For optimal efficiency, LWORK >= (NB+1)*N,
+          where NB is the blocksize for ZHETRD returned by ILAENV.
+
+          If LWORK = -1, then a workspace query is assumed; the routine
+          only calculates the optimal size of the WORK array, returns
+          this value as the first entry of the WORK array, and no error
+          message related to LWORK is issued by XERBLA.
+[out]	RWORK	
+          RWORK is DOUBLE PRECISION array, dimension (max(1, 3*N-2))
+[out]	INFO	
+          INFO is INTEGER
+          = 0:  successful exit
+          < 0:  if INFO = -i, the i-th argument had an illegal value
+          > 0:  if INFO = i, the algorithm failed to converge; i
+                off-diagonal elements of an intermediate tridiagonal
+                form did not converge to zero.
+
+```
+
+BLAS 에서는 복소수도 double 2개로 받더니, 여긴 또 ```__complex__ double```을 달라고한다. 
+
+일단 캐스팅해서 돌려보자. 돌아가기는 하고, 멀티 쓰레딩도 된다. 
+
+데이터 읽어서 연산은 시켰으나. 검증하는 부분을 구현해야겠다. 
+
+데이터 넣는 부분부터 틀렸다. 
+행렬이 두 알고리즘 모두 잘 안들어간다. 
+
+### 09.03
+
+N = 4 가지고 테스트 하자
+
+```matlab
+   A
+   1.2589 + 0.0000i   1.0763 - 0.5200i   0.1690 - 0.2269i   1.7411 - 0.6080i
+   1.0763 + 0.5200i  -1.6098 + 0.0000i   0.4868 - 0.1828i   0.0645 - 1.5256i
+   0.1690 + 0.2269i   0.4868 + 0.1828i  -1.3695 + 0.0000i   1.5417 + 0.6276i
+   1.7411 + 0.6080i   0.0645 + 1.5256i   1.5417 - 0.6276i  -1.4325 + 0.0000i
+
+   V
+   0.2812 + 0.0093i  -0.1539 + 0.0352i  -0.3312 + 0.4423i  -0.6516 + 0.4074i
+  -0.1814 - 0.4834i   0.6173 + 0.2624i  -0.2216 - 0.3752i  -0.2401 + 0.1899i
+   0.3595 + 0.2247i   0.5886 - 0.3612i   0.5137 + 0.0752i  -0.2598 - 0.0792i
+  -0.6889 + 0.0000i  -0.2196 + 0.0000i   0.4850 + 0.0000i  -0.4919 + 0.0000i
+
+   D
+   -4.1976         0         0         0
+         0   -1.5736         0         0
+         0         0   -0.2949         0
+         0         0         0    2.9132
+
+   sum(A*V  -  V*D,'all') = -1.8180e-15 + 4.7531e-16i
+
+```
+
+일단 eigen Library 의 A*V - V*D 가 0에 근사함.
+
+---
+
+OpenBLAS의 LAPACK을 해보자. BLAS 출력을 잘못하고 있었다. idx 초기화를 안했네. 
+
+OpenBLAS의 LAPACK이 잘 되는지 검증을 해보자. 
+
+cplx mat * cplx mat  - cplx mat * real vec  을 해야하는데  
+행렬 곱은 blas 쓰고 행렬x벡터는 for문 그냥 돌리자.  
+
+zheev 가 inplace 였다. 복사도 해야하네. 
+아니다 inplace 시키는게 hermitian 이라 대칭이므로 Upper 또는 Lower에서 넣어준다는 것. 그러면 대칭행렬 곱 연산 루틴이 있다면 그걸 쓰면 되지 않을까 싶은데 생각해보니까 대각성분이 바뀌니까. 안될거 같네.
+
+복사해서 해야겠다. 
+
+cblas하고 lapacke 하고 같이 include 하니까 충돌나는데, 
+
+OpenBLAS 빌드시에 LAPACKE 을 쓴다는 옵션을 줘야했던가 같은 실낱같은 기억이 스쳐지나갔다. ```iip_sph_pp``` 를 진행할 떄는 apt-get 으로 패키지 openblas를 사용했던것 같다 - lapack 포함 빌드인 - 
+
+상당히 꼬일 거 같은데.. linux에서 이걸 해결해서 빌드하고 링크한다 쳐도 윈도우에서는 더 복잡하게 가야하지 않을까? 아니다 cmake에 MSVC 옵션이 있기는 하니까? 근데 얘들 윈도우에서 잘 안되잖아. 
+
+조사를 더 해봐야겠다. 
+
+https://github.com/xianyi/OpenBLAS/wiki/How-to-use-OpenBLAS-in-Microsoft-Visual-Studio  
+
+된다는 거 같다. 
+
+그럼 OpenBLAS가 lapack을 같이 쓸 수 있게하는 옵션을 찾아보자.
+
+일단 OpenBLAS안의 lapack 폴더는 그냥 netlib 의 lapack을 냅다 들고온 거같다. 빌드도 안되네 이건 옵션을 제대로 안줘서 인거 같다.  
+
+아니면 편하게 apt-get으로 한거를 파일 가져와서 링크하며 되지 않을까?  
+
+https://github.com/gogyzzz/iip_sph_pp/issues/91  아.. 좀 더 자세히 읽었어야 했네. 여기서 한 대로 다시 해보자.  
+
+make install 해서 이동된 헤더들만 사용. 빌드는 성공하였다. 이제 다시 테스트로 돌아가자.  
+
+테스트 성공. 
+
+---
+
+Eigen 과 Lapack  모두 오차가 최대 e-14 이다 대체로 e-16 정도 되는 것 같다. 
+
+
+lapack 이 쓰레딩도 하고 최적화도 되어있어서 10배 빠르다. matlab 과는 6이상일 떄는 많이 격차가 나지만 그 이하에서는 거의 차이나지 않는다. 
+
+ZHEEV_2STAGE 이랑 ZHEEVD 만 해보면 될거 같다. 다른 것들은 같은 알고리즘에 좀 더 특정적인 인터페이스로 보임.  
+
+일단 ZHEEVD 먼저 해보자.  
+
+---
+
+openblas를 submodule 로해서 환경에 맞게 빌드하도록 해야겠다. 설치파일로 쓸거는 어쩔 수 없을 거 같긴한데. 
+
+OpenBLAS에 dynamic으로 하는게 있던게 그것도 한번 알아봐야겠다. 
+
+### 09.04
+
+#### TODO
++ ZHEEV_2STAGE
++ ZHEEVD
++ BLAZE
++ PLASMA - QUARK
++ lapack 래핑. 
+
+---
+
+zheev_2stage 는 OpenBLAS 에서 구현이 안되어있네,
+
+LAPACKE_zheevd 는 zheevd 랑 2stage 둘 다 구현이 되어있다. 
+
+zheevd 가 파라매터가 다르고 integer array work가 추가적으로 필요하다.  
+
+첵크해서 추가할까. 아니면 그냥 사이즈 받을 때 할당 해버릴까. 아니면 상속 구조로 갈까? 
+
+상속 구조로 가는게 나은거 같기도 하네. 
+
+zheev -> zheevd 상속.  
+
+---
+
+zheevd 랑 zheev 가 그렇게 차이가 없다. size 2, 4 일 때 빠른 알고리즘이 서로 바뀌긴하나. 유의미한 차이를 내지 못한다. 
+
+zheevd_2stage 가 ```symbol lookup error: undefined symbol : zheevd_2stage``` 가 뜬다. 구현이 안된걸까. 내가 링크를 잘 못한 걸까. 오타를 낸걸까.  
+
+https://github.com/xianyi/OpenBLAS/blob/ce3651516f12079f3ca2418aa85b9ad571c3a391/lapack-netlib/LAPACKE/src/lapacke_zheevd.c
+
+https://github.com/xianyi/OpenBLAS/blob/ce3651516f12079f3ca2418aa85b9ad571c3a391/lapack-netlib/LAPACKE/src/lapacke_zheevd_2stage.c
+
+보니까 내가 쓰고 있는 함수랑 인자가 다른데..? 뭔가 다른걸 링크해서 쓰고 있는 건가. 뭘 가져다 쓰고 있는 거지.  
+
+---
+
+역행렬 구하는 것 처럼. 고윳값 구하는 것도 코드짜여진거-낮은 채널- 있으면 찾아보자.
+
+일단 blaze 에는 안보이는 거 같다. 
+
+이건 좀 구하기 힘들거 같은데, 
+
+---
+
+### TODO
++ BLAZE
++ PLASMA - QUARK(구버전)
++ (openBLAS를 쓴다면)openblas set-up script 
++ 일반적인 역행렬 함수
+
+blaze 를 일단 써보자. 
+
+blaze is mere wrapping of blas/lapack.  옛날에도 blas에서 사용하려고 해서 알아보니까. 그냥 함수 래핑이었다. 결국엔 어떤 blas를 사용하는가의 문제이지 이게 뭘가를 해줄 거 같지는 않다. 
+
+그럼 일단 이정도 까지만 하자
+
+코드 짠거를 프로젝트에 합치자. 그리고 원래 프로젝트 작업 계속하자. 
+
+BLAS/LAPACK을 처리하는게 급선무겠다. 
+https://github.com/kooBH/IIP_Demo/issues/302  
+
+
+---
+### 09.05
+
+### TODO
++ BLAZE
++ PLASMA - QUARK(구버전)
++ (openBLAS를 쓴다면)openblas set-up script 
++ 일반적인 역행렬 함수
+
+
+역행렬 구하는 루틴을 만들자. 
+
+일단  blaze 에서 가져와서 변환할까 iip_sph_pp 에서 가져와서 변환할까 부터 정하자. 
+
+둘 다 별 차이는 없을 듯. 각자의 타입을 사용하도록 되어있는데. 나는 그냥 double 2개를 re,im 으로 해서 raw하게 할 것인기 떄문에 
+어차피 다 변환해야하는 건 같다. 커스텀한 타입을 사용하는 것은 그 타입을 계속 사용한다는 전제하에서는 굉장히 편리하지만, 그렇지 않을 경우 귀찮고 까다로워진다. 그냥 dobule 형으로 해도 직관적으로 받아들이기 쉽기 때문에 이렇게 간다. 
+
+일단 복소수만 하면 되니까 복소수 행렬만 변환하는 스크립트를 짜보자. 전에 짠게 남아있으면 좋을텐데 그럴거 같지는 않네.  
+
+두 코드가 다른 것은 blaze 는 복소수 타입의 연산을 오버로딩해서 구현해놨지만 sph 코드는 c 코드라서 복소수 구조체를 사용하되 연산 자체는  raw하게 되어있다. 
+
+### 09.06
+
+예전 스크립트가 남아있지는 않다. 
+
+음. 로컬 구조체로 연산을 시키고 들어오는 인자를 캐스팅하면 되지않을까? 테스트 해보자. 그러면 iip_sph_pp 의 코드를 그대로 쓸 수 있을 것 같다. 
+
+아 생각해보니까. 데이터가 일차원 배열에 있어야하네. blas 쓸려면.. 데이터 복사 작업을 한번 하든지 아니면 어차피 cpp 코드는 내가 짜야하니까 처음부터 일차원으로 해버리는 것도 괜찮을 것 같다. 성능 차이 한번 테스트는 해봐야겠지만. 
+
+일단은 캐스팅해서 해서 테스트 해보자. 
+
+```matlab
+A = [[0.840188 + 0.394383i,0.783099 + 0.798440i],
+    [0.911647 + 0.197551i,0.335223 + 0.768230i]];
+A
+inv(A)
+%(-0.795904 + -1.185639i)(1.555857 + 1.099865i)
+%(1.588316 + 0.053474i)(-1.528483 + -0.405178i)
+```
+
+잘된다. 코드는 iip_sph_pp 의 코드에 캐스팅만 넣어두었다. 
+
+추가하자. 
+
+lapack 에서 work 를 요구하는데 그냥 이거 클래스로 해버릴까? 근데 n을 명시해야하는데. 클래스 생성자에서 받고 루틴을 그냥 호출하는 식으로 일단 해야겠다. 
+
+아 기존의 6by6랑 충돌나네.
+
+refactoring 하고 몇가지 수정해서 넣음
+
+### 09.09
+
+### TODO
++ 파이선 standalone으로 사용할 수 있게하기
++ 런타임에서 쓰레드수를 정하게 하기. 
+==> 개발용이 아닌 임의의 pc에서 설치하고 그 pc에 맞게 실행이 가능한가? 의 문제.
+
+임의의 pc에서 gcp 테스트를 해야하는데. 
+
+1. 이 프로젝트를 들고가기
+2. 녹음 어플로 녹음 시켜서 별도의 파이썬 코드로 인식  
+
+[윈도콘솔창 없이 런](https://stackoverflow.com/questions/9618815/i-dont-want-console-to-appear-when-i-run-c-program )
+
+### 09.10
+
+#### 전날 발견한 문제
+
+---
+
+시리얼 포트 게인 설정시 응답없음 되는 상황
+포트 인식은 됨. 에러도 성공도 아닌 무응답 상태로 빠짐  
+
+---
+
+실행 파일로 release 시킨 상태에서 gcp를 어떻게 쓰게 할 것인가?  
+일단 최소한의 요구조건만 맞춘 파이썬을 포함시켜서 실행하였음. 다만 용량이 150mb 정도 되는데 어느 정도까지 줄일 수 있을 지 확인해봐야함.  
+
+---
+
+녹음시 현재는 버튼으로 조작하지만 시간을 설정해서 녹음하는 것도 추가해야할 것 같다.  
+
+---
+
+VAD & GCP 시 vad가 발화를 인식하지 않음.  
+데이터가 중간에 없어지는 지 vad 의 문제인지 파악해야함
+
+PreAlgo가 스코프 밖에 있었다. AfterInput 추가하면서 스코프에서 벗어난듯. 수정함.  
+
+그래도 vad 인식은 안된다. 코드가 들어가기는 하는데 어디서 문제난것일까.  
+
+스케일링이 문제인가? 
+차이가 없다. 들어오는 입력의 크기에 상관없에 psy가 nan이네.  
+
+vad 생성자를 한번봐야겠다. 생성자는 잘 들어오는데.. 
+
+왜 안되는거냐.. 입력은 잘 들어오는데. vad 알고리즘 코드를 건든 적도 없는데.  좀 더 테스트 해보자. 
+
+
+### 09.16
+
+wav input 시에 인식은 되는거 같은데 ui부분에서 터짐.
+
+stdio.h에서 오류 발생. windows 라서 발생한 것일 확률이 높다.  
+
++ GCP 부분에서 문제일으켰을 가능성이 크다. 
+
+----
+
+real time은
+
+raw,data 둘 다 들어오는 데는 문제가 없지만.  
+
+wav input에 비하면 전체적인 크기가 작다. 
+
+wav input 이면 psy가 제대로 들어오는데, real time 이면 nan이 뜨고. 그냥 전체 값을 찍어서 봐야겠다. 
+
+아 스피커 설정 문제였네.  
+
+노트북 48k, 마이크 16k 이건 간과하다니. 삽질이었다. 
+
+덕분에 이것저것 문제점을 찾기는 했다.
+
+### 09.17
+
+잘못된 오디오를 선택해서 construct 한 후에, 다시 제대로된 오디오를 연결하고 reconstruct 시 ``` QObject::disconnect: signal not found in KProcess``` 발생
+
+이거는 
+
+connect 를 체크하는 루틴을 찾아보자. 
+
+QDebug를 쓰라하네. 이 문제는 Module이 할당이 제대로 안된 상태에서 connect를 하면 connect가 안되는데 disconnect를 하려해서 발생하는 에러이다. 
+
+RT input에서 장치 선택시 문제가 있으면 에러를 출력하는데. 이를 bool 로 받아서 이 값을 체크해서 유효한 인스턴스인지 아닌지를 식별해보자. 
+이걸 new operator 단에서 어떻게 nullptr을 리턴하게 할 수 있을까?
+
+테스트 해보자.
+
+는 안됨. try - catch 로 필요한 부분만 처리를 해주자 일단. 
+
+지금 RT_INPUT을 생성하다가 문제가 생기면 throw를 하는데. 그러면 module 은 어떻게 되는 거지? 
+
+그 전까지 할당된 메모리들은 어떻게 되는 거지?
+
+일단은 현 시점에서 할당하다가 만 상태로 해제하면 seg 발생. 
+
+다 예외처리 박아버리면 될 거 같기는 한데. 너무 노가다 아닌가. 
+
+다 예외처리 함. 동작잘함.  
+
+---
+
+Process의 UI가 너무 작다. 크기를 늘리고 재배치해보자.  
+
+아니다 그렇게 까지 크게할 필요는 없을거 같은데.  
+
+그렇게 까지 중요한 문제는 아니니까 보류. 
+
+wav plot의 width가 부모 위젯에 의존적이지가 않네. 상대적으로 바뀌게 해야겠다.
+
+---
+
+옵션은 benchmark랑 recorder,dev 만 두고 나머지는 없애자. 
+
+배포판에 포함하는 거는 윈도만 하자. 
+
+GCP 전처리 분기를 해제 하면서 많은 문제가 발생할 거 같은데. 이건 해야하는 일이니까. 
+
+조심스럽게 진행하자. 일단 현재 빌드는 가능. 
+
+아. GCP 옵션이 켜져있을 때만 GCP를 사용하도록 해야겠다. 
+
+RealTimeRecord에 _GCP 구문이 있다?
+
+---
+
+CMakeLists.txt 에서 버전 명시할 수 있게 하자. 
+함. 하지만 옮기기만 하고 좀 더 편리하게 할 방법을 찾아보자. 
+
+
+
+
+### 09.18  
+
+아직까지 연구실 네트워크 연결이 안되어있는 관계로 노트북에서 작업 지속.  
+
+pc 리포랑 머지할 때 굉장히 많은 conflict가 날거 같다. 이 상황이 지속될 수 록 많이 나겠지. 
+
+일단 윈도에서의 문제를 해결 하자. 조심스럽게 진행해야한다. 테스크탑에서 수정사항이 좀 광범위하게 있기 때문에.. 
+
+---
+
+일단 stdio.h 에서 발생하는 에러부터 해결해보자. 
+
+```GCP_Module.cpp```
+
+```c++
+void GCP::Call(const char* file_name){
+#ifndef NDEBUG
+  printf("GCP::call %d %s\n",2,file_name);
+#endif
+  sprintf(command,"%s",file_name);  // <---- stdio.h 에러 발생 지점
+}
+```
+
+command ```char[80]``` 에서 문제가 발생   
+
+그리고 
+
+```
+예외 발생(0x00007FFAC5E41689(vcruntime140.dll), iip_demo.exe): 0xC0000005: 0xFFFFFFFFFFFFFFFF 
+위치를 읽는 동안 액세스 위반이 발생했습니다..
+```
+가
+```c++
+printf("LOG::%s\n",file_name);
+```
+했을 때 발생.
+
+file_name 이랑 command 둘 다 클래스의 멤버 변수로 정적 할당되어있는 char 이다. 
+
+어디서 에러가 나는 거지. 
+
+this 가 null 이었다. 이 문제는 데스크탑에서 수정 된 사항인데.. 
+
+코드를 수정하는 거는 좀 지양해야겠다. 
+
+---
+
+최소한의 크기를 차지하고 gcp를 동작시키는 파이썬 배포판을 만들어보자. 안쓰는 패키지들 다 삭제하면 되지 않을까? 
+
+cmake는 데스크탑에서 수정한게 있는데 윈도도 수정되어서 음.. 일단 해봐야겠네. 
+
+---
+
+윈도우 콘솔에 왜 또 한글이 안나오나. 
+
+```인식중``` 이 ```?�식 ��?.``` 으로 나온다. 콘솔도, UI도. 아마 코드상에서 안받는 건가. 
+
+```
+DirectWrite: CreateFontFaceFromHDC() failed (글꼴 파일과 같은 입력 파일의 오류를 나타냅니다.) for QFontDef(Family="Fixedsys",
+ pointsize=24, pixelsize=20, styleHint=5, weight=50, stretch=100, hintingPreference=0) LOGFONT("Fixedsys", lfWidth=0, 
+lfHeight=-20) dpi=120
+```
+
+폰트 문제인가 UI에서는 ? 원래 잘 되지 않았나? 
+
+일단 콘솔부터 한글을 출력해보자. 
+
+VS2019는 멀티바이트로 되어있었네. 
+
+아 vs 가 멀티바이트 인코딩이었는 데 이걸 다 유니코드로 바꾸면서 한글 다 깨짐. 이래서 영어로 주석을 달아야..
+
+굉장히 조진거 같다. 원래 유니코드 한글을 잘 표시되는데 멀티바이트 한글은 다 깨짐. 변환이 잘 안되네. 
+
+현재 콘솔 출력창은 한글이 잘 나오는데. 위젯에서 하나도 안된다.
+
+이제 
+
+```
+DirectWrite: CreateFontFaceFromHDC() failed (글꼴 파일과 같은 입력 파일의 오류를 나타냅니다.) for QFontDef(Family="Fixedsys", 
+pointsize=24, pixelsize=20, styleHint=5, weight=50, stretch=100, hintingPreference=0) LOGFONT("Fixedsys", lfWidth=0, 
+lfHeight=-20) dpi=120
+```
+
+이 문제를 해결해야하는가. 
+
+일단 머지는 해야겠다. 
+
+했던거 다 날리고 머지하자.
+
+src 폴더 내의 것들만 날리고 머지함. 
+
+폰트문제는 아니네. 별도로 한글 폰트 구해서 넣었는데 안됨. 
+
+```c++
+  TE_output->append(QString::fromStdString("한글 QString::fromStdString"));
+  TE_output->append(QString("한글 QString"));
+  TE_output->append("한글");
+```
+이게
+
+```
+�ѱ� QString::fromStdString
+�ѱ� QString
+�ѱ�
+```
+
+이래 뜬다. 
+
+```c++
+ TE_output->append(QString::from("한글 fromLocal8Bit"));
+```
+
+으로 출력 성공.. 어째서..
+
+일단은 string -> char* -> QString 이렇게 출력.
+
+
+
+
+---
+
+```cpp
+void UI_Module::SendLog(const char* _log){
+  printf("SendLog : %s\n",_log);
+//  emit(SignalLog( _log ));
+  krun->temp_log = std::string(_log);
+  emit(SignalLogAlt());
+}
+```
+
+여기서 로그가 잘 안찍힘. 인자 전달이 잘 안되서 멤버 변수를 직접수정하고 갱신을 요청하는 방식을 사용했는데, 
+
+signal - slot은 별도의 Qt 쓰레드에서 관리하기 때문에 
+
+```
+SendLog : 2019-09-18_16-36-08.wav Created
+SendLog : 인식중
+slot_logAlt 인식중
+slot_logAlt 인식중
+```
+
+이런 결과가 생긴다. 
+
+일단은 logAlt 대신 log로 다시 돌림. 
+
+현재는 작동 잘하나 지켜봐야함.
+
+
+
+---
+
+시리얼 포트 문제를 파악해보자.
+
+---
+
+GCP 안된다. 파이썬이 안열리는가.
+
+열리기는 하는데. 
+
+웨이브 생성후 except 되네.
+
+```python
+        config = types.RecognitionConfig(
+            encoding=enums.RecognitionConfig.AudioEncoding.LINEAR16,
+            sample_rate_hertz=16000,
+            language_code='ko-KR')
+```
+
+여기서 except  되네. 음.
+
+---
+
+VAD 튜닝이 필요할 것 같다. 노트북 입력일때랑 MEMS 입력일 때랑 확실히 다르네
+
+### 09.19
+
+GCP - speech가 안됨.  잘되던 코드도 안 되는 걸로 보아 계정문제인거 같은데. iipsogang의 비번을 모르겠다. 
+
+엥간한거 다 넣어봤는데 안되네
+
+비번찾음 새로운 까먹은 조합이 있었네. 
+
+```무료 평가판이 종료되었지만 Google Cloud Platform을 계속 사용할 수 있습니다. 서비스를 복원하려면 2019년 10월 17일까지 업그레이드하세요.```
+
+라고 뜨는군 
+
+윈도 경로문제인거 같음. 
+
+경로를 손보니
+
+```python
+print('GCP::requesting : '  +speech_file )
+response = client.recognize(config, audio)
+```
+여기서 문제네. recognize를 안해주네.
+
+2018년 9월 17일. 12개월 무료 평가판 기간이 2019년 9월 17일 부로 끝난듯.
+결제해야하네
+
+sogangsap 계정에 2019년 9월 19일 부로 12개월  300달라 평가판 시작해서 api 등록함. 
+키도 변경함. 
+
+---
+
+VAD 파라매터를 잘 못 잡겠다. 기존의 값으로는 MEMS로는 잘 되는데. 웨이브파일을 읽거나  노트북으로 녹음할 때는 아예 안되네.  
+
+
+---
+
+slog_logAlt 없앰. 
+
+
+---
+
+speex
+
+https://www.speex.org/downloads/
+
+GNU 오픈 소스 오디오 포맷. 
+
+vs2008 win32까지만 솔루션이 들어있네. 윈도는 거의 개발 안하는듯.
+
+https://en.wikipedia.org/wiki/Speex
+```Xiph.Org now considers Speex obsolete; its successor is the more modern Opus codec, which surpasses its performance in all areas.```
+
+---
+
+```
+2019-09-19_15-56-27.wav Created
+인식중
+2 3 4
+2019-09-19_15-56-35.wav Created
+인식중
+섎굹 
+2019-09-19_15-56-49.wav Created
+인식중
+쒓源⑥덇퉴
+```
+
+하 인코딩. 
+
+```
+2019-09-19 15:56 : 하나 둘 셋 넷
+2019-09-19 15:57 : 유리 깨지니까
+2019-09-19 15:57 :  한글이 깨지니까
+```
+
+파이썬 단에서는 문제 없는거 같은데, 주고 받는데서 깨지는듯. 
+
+GCP_Module.cpp 의
+
+```c++
+   msg = std::string(PyUnicode_AsUTF8(pValue));
+```
+을 알맞게 바꿔야겠다. 
+
+https://docs.python.org/3/c-api/unicode.html
+
+올바른 함수를 찾아보자. 
+
+이전에도 인코딩때문에 고생했는데. 그냥 별거 안했는데 해결되어서 구체적인 해결책이 없네.  
+
+일단 python 단에서는 str - 유니코드 를 리턴한다. 그렇다면 ```PyUnicode_AsUTF8``` 에서 PyUnicode 부분은 잘 될것이란것.  
+그러면 문제는 UTF8이란 건데 
+```c++
+	QString temp = QString::fromUtf8(PyUnicode_AsUTF8(pValue));
+	std::cout << "fromQt::" << temp.toStdString() << "\n";
+```
+이게 안돌아가는 이유를 알 수가 없네. 
+
+### 09.20
+
+한글 문자열 이슈 계속 처리중. 
+
+https://stackoverflow.com/questions/45575863/how-to-print-utf-8-strings-to-stdcout-on-windows
+
+파이썬에서 utf8으로 제대로 보내주지만 c++에서 string 타입이 utf-8을 안해주는것 같다. 
+
+VS2019가 어느순간인가 멀티바이트 프로젝트로 되어있었다. 
+
+유니코드로 바꿨지만 차이는 없다.
+
+확실한 것은
++ 파이썬은 utf8 인코딩을 사용한다.
++ C에서 받은 이진데이터는 const char*에 저장된 utf8인코딩이다.
+
+이러면 왜 QString 에서 fromUtf8으로 변환했을 때 같은 잘못된 출력을 내보내는지 모르겠다. 
+
+```
+The encoded version utf-8": b'\xed\x95\x9c\xea\xb8\x80'
+The encoded version cp949: b'\xc7\xd1\xb1\xdb'
+```
+
+3-byte utf-8 문자열을 c++에서 처리해야한다. 
+
+http://blog.daum.net/_blog/BlogTypeView.do?blogid=0aP73&articleno=23&_bloghome_menu=recenttext
+
+OS별로 분기를 넣어서 처리해야할거 같은데. 일단 윈도부터 하자. 
+
+wstring을 쓴다해도 2바이트 문자열이기 때문에 3바이트를 쓰는 한글이랑 그렇게 잘 맞지는 않는다.  
+지금 해야하는 거는 char* 로 저장된 3바이트 utf8 문자열을 QString으로 받는 것이다. 
+
+```
+�ν��� <-fromUtf8
+인식중    <-fromLocal8bit
+한글      <-fromUtf8
+쒓        <-fromLocal8bit
+한글      <-fromUtf8
+쒓        <-fromLocal8bit
+``` 
+
++ 파이썬에서 받아온 문자열은 utf8이므로 fromUtf8
++ c++ 코드에서 직접 입력된 한글은  formLocal8bit, 이것도 유니코드인데 왜 다르게 해야하는지는 잘 모르겠네. 비주얼 스튜디오에서 어떻게 인식하는 가의 문제인거 같다. 
+
+일단 이렇게 윈도로 처리하고 리눅스는 그때가서 봐야겠네.
+
+한글 잘 나오는 것 확인함.
+
+
+
+---
+
+
+vad 인식도 좀 이상함
+
+```
+Module Initialized
+2019-09-20_11-52-16.wav Created
+인식중
+
+
+2019-09-20_11-52-17.wav Created
+인식중
+쒓컯숆탳 吏μ젙蹂爾곌뎄ㅼ엯덈떎
+쒓컯숆탳 吏μ젙蹂爾곌뎄ㅼ엯덈떎
+2019-09-20_11-52-19.wav Created
+인식중
+쒓컯숆탳 吏μ젙蹂泥섎━ 寃껋엯덈떎
+쒓컯숆탳 吏μ젙蹂泥섎━ 寃껋엯덈떎
+```
+
+처음에 돌때는 인식안되다가 한번 더 돌아야 인식한다. 
+
+---
+
+출력 단 항상 새로운 출력을 볼 수 있게 하자. 
+```c++
+  QObject::connect(TE_output, &QTextEdit::textChanged,
+	  [&](){
+	  TE_output->moveCursor(QTextCursor::End);
+	}
+  );
+```
+
+
+
+---
+
+실시간 vad & GCP 시 한번하고 끝나버린다. 
+
+어디서 멎어버리는데 어디서 멎는지 알아보자. 
+
+input의 stock이 128에서 고정되네.
+
+rt가 stop된다. 
+
+ui module 수정하면서 scope가 잘못되었고 delay를 너무 크게줘서 이런 일이 발생한듯. 수정함. 잘돌아간다
+
+---
+
+얼마전에 시리얼포트 게인 조절할 때 문제가 있었는데. 해당 상황을 다시 발생시켜서  
+알아보자. 
+
+```c++
+ for (int i = 1; i < 9; i++) {
+        data_write[i] = Gain_Value_Table[ch_gain[i]];
+        ...
+
+```
+
+여기서 에러
+
+찍어보니까 i 가 0이네. 이러면 안되지. 
+
+ch_gain[]의 default 값이 없어서인듯. 넣어줌. 
+
+### 09.23
+
+app의 샘플레이트가 윈도우 시스템에서 설정한 샘플레이트보다 높을 경우 차이만큼 녹음이 안되는 문제를 해결해보자. 
+
+https://stackoverflow.com/questions/36128507/changing-sample-rate-for-microphone-speakers-in-windows-7
+
+https://social.msdn.microsoft.com/Forums/windowsdesktop/en-US/e2e9858f-9bf5-4400-8a4e-570fa3285aad/changing-audio-device-sample-rate-via-pkeyaudioenginedeviceformat-does-not-work?forum=windowssdk
+
+MEMS 보드의 기본 샘플레이트가 8k라서 문제가 있음.  
+
+https://stackoverflow.com/questions/22616924/wasapi-choosing-a-wave-format-for-exclusive-output
+
+IMMDevice 를 알아보자.  
+
+https://docs.microsoft.com/en-us/windows/win32/api/mmdeviceapi/nn-mmdeviceapi-immdevice
+
+
+https://stackoverflow.com/questions/46947529/setting-default-format-on-capture-device-via-winapi
+
+MMDevice가 있는데, WASAPI에서도 설정할 수 있을까? 
+
+https://docs.microsoft.com/en-us/windows/win32/coreaudio/enumerating-audio-devices
+```
+After selecting a suitable device, the client can call the IMMDevice::Activate method to activate the device-specific 
+interfaces in WASAPI, the DeviceTopology API, and the EndpointVolume API.
+```
+
+둘 다 같이 봐야겠네. 
+
+그런데. 이건 default format인데. default라면 바꿀 수 있다는 것이 아닌가?? 그럼문제는 rt audio오단에서 바껴진 형식이 적용이 안된다는 것인가.
+
+rtaudio 에서는 
+```c++
+ IMMDeviceEnumerator* deviceEnumerator_;
+```
+이정도로만 사용하고 설정하는 것은 없다. 
+
+일단 Enumerator 부터 해보자. 
+
+https://docs.microsoft.com/en-us/windows/win32/coreaudio/enumerating-audio-devices
+
+이건 그냥 다 출력한다. 
+https://github.com/mvaneerde/blog/blob/develop/audioendpoints/audioendpoints/endpoints.cpp  
+  
+rt_aduio의 enumerator가 코드 가 더 길지만 출력물이 정제되어 있다. 
+https://github.com/thestk/rtaudio/blob/1cba5c90a35b0e79915dc46dd5525da2285a211b/RtAudio.cpp
+
+일단 rt aduio의 코드를 공부해보자. 
+
+```
+mfapi.h header
+This header is used by Microsoft Media Foundation. For more information, see:
+
+Microsoft Media Foundation mfapi.h contains the following programming interfaces:
+```
+
+이런 걸 사용하네. 이거는 입출력 다룰 때 쓰는 거 같으니 pass. 
+
+테스트 프로젝트 작성 중.
+
+---
+
+spectrogram load 시 종료 현상있음. 
+
+---
+
+### 09.24 
+
+https://github.com/gogyzzz/arrayfire_wpe 한번 테스트 해봐야한다.  
+
+https://arrayfire.com/ 랑 CUDA를 쓰는데 둘다 구버전에서 해서 최신버전으로 하면 안될가능성이 크다고 한다.   
+
+아. 일단 nasal을 쓰려고했는데. 이게 상태가 안좋아서 좀 봐야겠는데.  
+
+cochlea 로 터전을 옮길까. 일단 cochlea에서하고 nasal은 시간이 좀 걸릴 거 같다. 
+
+docker 권한이 없네, group 에는 포함이 되어 있는데 . 
+
+도커 19를 써야하는데 cochlea의 ubuntu 16.04에는 18이 깔려있네. 새로 설치를 해야하는데. 그러려면 이전에 도커 쓰던 분들에게 얘기를 해야겠지.
+
+일단 기존의 도커부터 날려보자 
+
+```sudo apt-get remove docker docker-engine docker.io containerd runc```
+
+에 아무것도 걸리는게 없네. ```docker-ce``` 는 걸리는데 이걸로 된다면 그냥 업그레이드하면 되는거 아닐까? 
+
+일단 진행하자 . ???
+```sudo apt-get update``` 에서
+
+```
+
+Err:14 https://nvidia.github.io/libnvidia-container/ubuntu16.04/amd64  InRelease
+  The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 6ED91CA3AC1160CD
+Err:19 https://nvidia.github.io/nvidia-container-runtime/ubuntu16.04/amd64  InRelease
+  The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 6ED91CA3AC1160CD
+Err:20 https://nvidia.github.io/nvidia-docker/ubuntu16.04/amd64  InRelease
+  The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 6ED91CA3AC1160CD
+Fetched 1,590 kB in 1s (986 kB/s)
+Reading package lists... Done
+W: An error occurred during the signature verification. The repository is not updated and the previous index files will be used. GPG error: https://nvidia.github.io/libnvidia-container/ubuntu16.04/amd64  InRelease: The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 6ED91CA3AC1160CD
+W: An error occurred during the signature verification. The repository is not updated and the previous index files will be used. GPG error: https://nvidia.github.io/nvidia-container-runtime/ubuntu16.04/amd64  InRelease: The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 6ED91CA3AC1160CD
+W: An error occurred during the signature verification. The repository is not updated and the previous index files will be used. GPG error: https://nvidia.github.io/nvidia-docker/ubuntu16.04/amd64  InRelease: The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 6ED91CA3AC1160CD
+W: Failed to fetch https://nvidia.github.io/libnvidia-container/ubuntu16.04/amd64/InRelease  The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 6ED91CA3AC1160CD
+W: Failed to fetch https://nvidia.github.io/nvidia-container-runtime/ubuntu16.04/amd64/InRelease  The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 6ED91CA3AC1160CD
+W: Failed to fetch https://nvidia.github.io/nvidia-docker/ubuntu16.04/amd64/InRelease  The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 6ED91CA3AC1160CD
+W: Some index files failed to download. They have been ignored, or old ones used instead.
+
+```
+이런 에러가 나네..
+
+그래도 일단 하라는거 하나씩 해보자 
+
+```
+sudo apt-get install \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg-agent \
+    software-properties-common
+
+```
+
+```curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -```
+```sudo apt-get install docker-ce docker-ce-cli containerd.io```
+
+```apt-cache madison docker-ce```
+
+해서 나오는 것 중에서 19.03.2~3 을 설치해보자.  
+
+음.. 뒤에다 ubuntu-bionic이라 적혀있는데. bionic은 ubuntu 18이다. 설치하면 안될거 같은데. 
+
+xenial 붙은건 안보이고.. 
+
+```
+Install from a package
+If you cannot use Docker’s repository to install Docker Engine - Community, you can download the .deb file for your release and install it manually. You need to download a new file each time you want to upgrade Docker.
+
+Go to https://download.docker.com/linux/ubuntu/dists/, choose your Ubuntu version, browse to pool/stable/, choose amd64, armhf, arm64, ppc64el, or s390x, and download the .deb file for the Docker Engine - Community version you want to install.
+
+```
+https://download.docker.com/linux/ubuntu/dists/xenial/pool/stable/amd64/ 여기에 있네. 
+
+일단 
+
+https://download.docker.com/linux/ubuntu/dists/xenial/pool/stable/amd64/docker-ce_19.03.2~3-0~ubuntu-xenial_amd64.deb
+를 설치해봄 
+
+```docker --version ```
+하니 19.03.2가 뜨네. 
+
+```docker run --gpus all tts``` 하니까
+``` could not select device driver "" with capabilities: [[gpu]].``` 
+음..
+
+https://github.com/NVIDIA/nvidia-docker/issues/1034
+
+http://collabnix.com/introducing-new-docker-cli-api-support-for-nvidia-gpus-under-docker-engine-19-03-0-beta-release/
+```sudo ubuntu-drivers autoinstall```
+
+reboot 을 해야하는데. 누가 접속 중이다.   
+
+reboot 해도 그대로다. 아니 
+
+nvidia-smi 는 잘되는거보면 cuda는 잘 깔려있는데. docker가 문제인가. 
+
+버전도 nasal의 버전이 더 낮은데 드라이버는 . nasal은 설치된 docker도 없다. 날라갔나.
+
+```
+If you didn't already make sure you've installed the nvidia-container-toolkit.
+If this doesn't fix it for you, make sure you've restarted docker systemctl restart dockerd
+```
+안됨. 
+
+아. 여기 뭔가 있네
+
+```
+Troubleshooting:
+Did you encounter the below error message:
+
+$ docker run -it --rm --gpus all debian
+docker: Error response from daemon: linux runtime spec devices: could not select device driver "" with capabilities: [[gpu]].
+The above error means that Nvidia could not properly register with Docker. What it actually mean is the drivers are not properly installed on the host. This could also mean the nvidia container tools were installed without restarting the docker daemon: you need to restart the docker daemon.
+
+I suggest you to go back and verify if nvidia-container-runtime is installed or not OR restart the Docker daemon.
+```
+
+
+도커 데몬을 재시작하니까 
+```
+docker: Error response from daemon: OCI runtime create failed: container_linux.go:348: starting container process caused 
+"process_linux.go:402: container init caused \"process_linux.go:385: running prestart hook 1 caused \\\"error running 
+hook: exit status 1, stdout: , stderr: exec command: [/usr/bin/nvidia-container-cli --load-kmods configure --
+ldconfig=@/sbin/ldconfig.real --device=all --compute --utility --require=cuda>=9.0 --pid=8276 
+/var/lib/docker/overlay2/b956d7f169cca157457e107ee8c99a050c33199ded8f4fa4d68e3ace612c6d0c/merged]\\\\nnvidia-contain
+er-cli: initialization error: driver error: failed to process request\\\\n\\\"\"": unknown.
+
+```
+
+ 이런 에러를 맞이함 
+
+https://github.com/NVIDIA/nvidia-docker/issues/726
+
+버전이 안 맞는다는 거네. 
+
+--- 
+
+
+
+MMdevice로 
+읽단 읽는 건 돌려보았다. 설정하는 방법을 알아야한다. 
+
+---
+
+MAC OSX 에 GUI를 달자. 
+
+경로 관련해서 문제가 있을 거 같은데. 일단 돌려는 봐야지. 
+
+Qt5.12.3 을 사용하고 있는 걸로 기억하는데.. 맞겠지?  
+
+LTS 였나 Latest release 였나.. 일단 엥간해서는 default로 가자. 
+
+다운로드가 너무 느리네 하루종일 켜놔야겠다.  
+
+### 09.25
+
+TTS가 안되네. fmt_type : 1 로 받는데 3 이어야하는데. output 폴더가 없어서 다운로드가 안되었다. 작동확인함. 
+
+---
+
+OSX 용 Qt5의 라이브러리 파일이 어디있는 지를 못찾겠다. 
+
+확장자가 없는 unix 이진파일 ```QtCore``` 랑 ```QtCore_debug``` 가 있는데 이게 so 일까? 
+
+https://codejamming.org/2018/deploy-to-macos
+
+MacOS의 동적 라이브러리 사용은 많이 다른것 같다. 
+
+cmake 명령어로 링크해보고 여기서 값을 봐서 해버리자. 
+
+https://github.com/kooBH/CMake-Qt5-MacOS 이거 파서 하기로함. 
+
+find_package로 빌드 성공. 어디서 가져오는지 찾아보자. 
+
+일단 급하니까 스탠드 얼론이 아닌걸로 만들자. 그냥. 
+
+OSX 빌드하니까 에러가 좀 생기네. 
+
+``` use 'template' keyword to treat 'get' as a dependent template name ``` ??
+
+
+JsonConfig.h 의
+```c++
+ data[*it] = j[name][*it].get<T>(); //를
+ data[*it] = j[name][*it].template get<T>(); //로
+```
+
+했는데 mac에서는 gui Recorder를 빌드 시켰다. 다른 os에선 어떻게 될지는 모르겠다. 
+일단 폰트나 여러가지것들이 안 맞으니까 다듬자.  
+
+갑자기 링크에서 에러가 나네?  serial_port 관련 부분인거 같은데. 폰트 추가 말고는 한게 없는데. 
+폰트문제는 아닌거 같고.. 뭐지. 
+
+macos의 라이브러리들이 안잡히네.  
+
+```CMake
+  list(APPEND REC_LIB ${FOUNDATION_LIBRARY} ${IOKIT_LIBRARY} )
+```
+여기서 안 잡힌다. 
+
+```CMake
+if(APPLE)
+    find_library(IOKIT_LIBRARY IOKit)
+    find_library(FOUNDATION_LIBRARY Foundation)
+endif()
+```
+이게 CMake 분기때문에 날라갔네. 
+수정함.  
+
+JSON 파일위치가 별도로 되어있다. 같은 파일을 쓰게하자
+
+3개의 라벨만 검은 글씨인데 나머지는 흰색 글씨이다. 
+
+macos의 기본 글씨색이 흰색으로 되어있는 건가. 다른 os에서는 검은 글씨인데.  
+
+같은 label 도 어떤건 검은색이고 어떤건 흰색이고.. 뭔 차이지. 
+
+
+---
+
+recorder에 spectrogram 넣어도 괜찮을꺼 같은데. 
+
+---
+
+시간 정해서 녹음하는 기능을 추가하자. 
+
+
+---
+
+### 09.26
+
+MacOS 폰트 이슈 계속. 
+
+QApplication 자체의 style을 지정하는 방식으로 default text color를 설정할 수 있지 않을까? 
+
+```c++
+app.setStyleSheet("color:black;"); 
+```
+은 안되나
+```Could not parse application stylesheet```
+
+전체적으로 적용하는 것은 안되고 
+
+
+```c++
+app.setStyleSheet("QLabel{color:black;}"); 
+```
+이런 식으로 하면 모든 QLabel에 적용은 된다.
+
+```c++
+app.setStyleSheet("\
+QLabel{color:black;}\
+QPushButton{color:black;}\
+"); 
+```
+이런 식으로 처리함. 
+
+---
+
+macOS에서 장치 이름 깨지는걸 고쳐보자. 
+
+RtAudio에서 ```마이크```,```스피커``` 라는 한글을 인식 못해서 인거 같다. 
+
+MacOS의 텍스트 인코딩이 뭐지? 
+
+hex를 까서 봤는데. 이상한데. 
+
+앞쪽은 동일한데 뒤쪽이 ```ffffffb8```,```ffffffb6``` 이런 식이다. 4바이트 양식인가? 
+
+그러기엔 ```ffffffc7``` 이 2번 반복되는 부분이 있는데. 이건 말아 안된다. 
+8바이트당 한 문자인가?  
+
+rtaudio단에서 잘 못받는 걸 수도 있으니까. 나중에 살펴봐야겠다. 
+
+일단은 기능 추가부터 하자. 
+
+---
+
+시간설정해서 녹음하는 기능을 추가하자. RT_Input을 손봐야겠지. 
+
+동작을 어떻게 해야하나. 
+
+RT_Input의 구조를 좀 바꿔야하네. 
+
+```c++
+  const unsigned int max_stock_second = 10;
+  bool record_inf;
+  double record_time;
+```
+를 추가하고. 
+
+```c++
+#if __INF
+  data.totalFrames = max_stock;
+#else
+  data.totalFrames = (unsigned long)(sample_rate * RECORD_TIME); // * dtime
+#endif
+```
+
+```int rt_call_back(void * /*outputBuffer*/, void *inputBuffer,
+                 unsigned int nBufferFrames, double /*streamTime*/,
+                 RtAudioStreamStatus status, void *data)```
+콜백 함수에서 결정되네. 글로벌로 해둘까. InputData에 담아두자. 
+
+max_stock 과 totalframes를 구분해야한다. 
+구분시키고 ```Clear()``` 함수 추가함.
+
+QLineEdit에 녹음 시간을 설정하게 하자. double만 받도록.
+
+작동은 잘하는데 끝나고 종료를 해버리네?
+
+정수형이 되는데 소숫점이 있으면 종료된다. 
+
+ rec_thread->join(); 여기서 터지는디 
+
+```c++
+ if ( data.stock.load() > max_stock)
+```
+이 부분이 stock이 음수인 경우 참으로 들어간다?
+```c++
+ if (data.stock.load() >0 && data.stock.load() > max_stock)
+```
+일단 이렇게 때웠다. 
+
+녹음기능은 추가됨. 
+
+아. max_stock < reocrd_time 인 경우를 처리하지 않았네. 
+이 경우에는 제3의 procedure를 짜야한다. 
+
+---
+
+style로 다 ```color:black``` 을 박아버려서. disabled 된 것이 구분이 안된다. 
+
+---
+
+테스트 해보려했는데. 샘플레이트가 이상한데. 모든 경우의 수를 다 보여주네. 
+
+### 09.27
+
+파이썬 모듈은 의존성이 있는 데. 옵션으로 줘야하나?? 
+
+---
+
+max_stock 을 넘는 길이로 녹음할 때, read_offset이 링버퍼로 돌아가도록 해야한다. 
+
+구현함. 근데 녹음한 소리가 좀 끊긴다. 샘플레이트 수치는 괜찮은데. 
+
+입력이 일정하게 들어가지 않는다. 계속 발생하니까 Rewind문제는 아닌거 같고. 
+
+다른 녹음프로그램도 같은 문제가 발생한다. 드라이버 문제인가. 디지털 멀티채널 드라이버가 설치되어있는데 지금 아날로그로 작동시키고 있다. 
+
+일단 지금 상태로 MacOS에서 테스트 해보자. 맥 마이크로는 녹음 잘함. 
+
+녹음이 되긴되는데 15sec 하는거보면 rewind문제는 아닌거 같은데 seg가 발생한다. 너무오래 잡아서 그런가? 
+
+16채널이라 문제가 생기는 건가? 
+
+1채널일 때는 문제가 없다. 
+
+
+16채널일 떄,
+
+```c++
+  memcpy(raw, data.buffer + read_offset, temp1 * channels * sizeof(short));
+	  temp2 = shift_size - temp1;
+	  /* */
+	  memcpy(raw + temp1*channels, data.buffer, temp2 * channels * sizeof(short));
+	  read_offset = temp2;
+```
+
+여기서 temp1 값이 깨지네. 연산을 잘 못하고 있었다. 수정함. 잘 동아간다. 
+---
+
+현재 타이머 된 녹음시 프로세스를 잡아서 사용하고 있음. 잡지 않게 하자. 
+
+이렇게 하려면 rt가 끝났을 때. gui에서 그걸 알아내서 마무리 처리를 해야한다. 상호참조를 해야하는데.. 
+그냥 qt에서 계속 체크하게 할까? 그러면 의존성 문제는 덜해지는데. .. 그렇게 하자. 
+
+타이머도 달아보자. .
+QElapsedTimer를 쓰면 될거 같다. 
+
+QTimer를 쓰려면 slot을 써야하네, recorder에 verdigris를 넣었던가? 
+
+타이머 오차를 좀 손봐야겠다. 
+
+위젯에 스타일 적용이 안된다. 코드상의 변경은 verdigris 밖에 없는데. 
+
+---
+
+disabled 구분 안되는건 확실히 고쳐야겠다.. 
+
+```
+QPushButton:disabled {
+color:gray;}
+```
+
+이런게 있네. 잘 돌아감. 
+
+---
+
+recorder 끝내고 코드 정리를 해야겠다. 너무 지저분하네. 
+
+### 09.30  
+
+https://github.com/kooBH/IIP_Demo/issues/312 
+해결하자. 
+
+저 현상이 정확이 어떨때 발생하는지 명시해두지 않아서 제대로 됐는지 모르겠ㄴ. 
+
+실험결과 int 가 음수일때 unsigned int 양수랑 비교하면 음수인 int 가 더 크게 된다. 아마 캐스팅을 unsigned int로 해주는 듯. 
+static_cast로 해결 
+
+```c++
+ if (data.stock.load() > static_cast<int>(max_stock)) {
+```
+
+---
+
+프로젝트에 녹음 모듈도 넣자. 넣음
+
+---
+
+스타일 문제 해결. 위젯의 background-color를 설정했을 때. 하위 위젯의 배경색이 바뀐다. 그안에 별도의 구분이 없더라도  
+위젯의 child 위젯을 만들어줘야 스타일 적용이 된다. 
+
+
+---
+
+https://sourceforge.net/projects/openblas/files/v0.3.6/ 
+
+여기에 
+
+dll 파일과 lib 파일이 다 있는데 사용이 가능한건가? 이거는 MinGW 용인거 같다. 
+
+libgcc_s_seh-1.dll을 요구한다.  
+
+https://stackoverflow.com/questions/2529770/how-to-use-libraries-compiled-with-mingw-in-msvc  
+https://stackoverflow.com/questions/29139425/how-to-use-libraries-compiled-with-mingw-in-visual-studio 
+
+MSVC에서 쓰는게 불가능하지는 않지만 어렵고 잘 안되는것 같다. 
+
+예전에 테스트도 했었는데. 
+
+https://github.com/xianyi/OpenBLAS/wiki/How-to-use-OpenBLAS-in-Microsoft-Visual-Studio
+
+로 하나씩 해보자. 
+
+모든 명령어를 miniconda prompt 안에서 수행해야한다. 
+
+빌드하는데 10분 넘게 걸릴거 같다. 
+
+30분걸렸네. openblas.lib : 70MB , 출력물 하나. 
+
+내일 동작하는지 테스트 해보자.
+
+
+
 
 
 
